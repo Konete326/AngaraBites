@@ -13,6 +13,18 @@ const Layout = ({ children }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 1100);
   const location = useLocation();
 
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 1100;
+      setIsMobile(mobile);
+      if (mobile && isSidebarOpen) {
+        setIsSidebarOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isSidebarOpen]);
+
   if (dataError) {
     return (
       <div style={{
@@ -70,18 +82,6 @@ const Layout = ({ children }) => {
       </div>
     );
   }
-
-  useEffect(() => {
-    const handleResize = () => {
-      const mobile = window.innerWidth <= 1100;
-      setIsMobile(mobile);
-      if (mobile && isSidebarOpen) {
-        setIsSidebarOpen(false);
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [isSidebarOpen]);
 
   const pageTitles = {
     '/dashboard': 'Dashboard Overview',
