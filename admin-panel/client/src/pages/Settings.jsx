@@ -147,13 +147,10 @@ const Settings = () => {
 
   const fetchDbStats = async () => {
     try {
-      const [salesRes, expensesRes] = await Promise.all([
-        axios.get(getApiUrl('/api/sales')),
-        axios.get(getApiUrl('/api/expenses'))
-      ]);
+      const res = await axios.get(getApiUrl('/api/dashboard/db-stats'));
       setDbStats({
-        totalSales: salesRes.data.length,
-        totalExpenses: expensesRes.data.length
+        totalSales: res.data.totalSales,
+        totalExpenses: res.data.totalExpenses
       });
     } catch (err) {
       console.error(err);

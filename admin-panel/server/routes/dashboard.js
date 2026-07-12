@@ -53,4 +53,16 @@ router.get('/today', async (req, res) => {
     }
 });
 
+router.get('/db-stats', async (req, res) => {
+    try {
+        const [totalSales, totalExpenses] = await Promise.all([
+            Sale.countDocuments(),
+            Expense.countDocuments()
+        ]);
+        res.json({ totalSales, totalExpenses });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 module.exports = router;
