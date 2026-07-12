@@ -103,15 +103,24 @@ const Dashboard = () => {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-              <div style={{ padding: '1rem', backgroundColor: 'rgba(74, 222, 128, 0.05)', borderRadius: '8px', border: '1px solid rgba(74, 222, 128, 0.2)' }}>
+              <div 
+                onClick={() => navigate('/sales')}
+                style={{ padding: '1rem', backgroundColor: 'rgba(74, 222, 128, 0.05)', borderRadius: '8px', border: '1px solid rgba(74, 222, 128, 0.2)', cursor: 'pointer' }}
+              >
                 <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>Total Sales</p>
                 <h3 style={{ margin: '0.5rem 0 0 0', color: '#4ade80', fontSize: '1.5rem' }}>Rs. {businessSummary.totalSales.toLocaleString()}</h3>
               </div>
-              <div style={{ padding: '1rem', backgroundColor: 'rgba(239, 68, 68, 0.05)', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+              <div 
+                onClick={() => navigate('/expenses')}
+                style={{ padding: '1rem', backgroundColor: 'rgba(239, 68, 68, 0.05)', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)', cursor: 'pointer' }}
+              >
                 <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>Expenses</p>
                 <h3 style={{ margin: '0.5rem 0 0 0', color: '#ef4444', fontSize: '1.5rem' }}>Rs. {businessSummary.totalExpenses.toLocaleString()}</h3>
               </div>
-              <div style={{ padding: '1rem', backgroundColor: 'rgba(250, 204, 21, 0.1)', borderRadius: '8px', border: '1px solid rgba(250, 204, 21, 0.3)' }}>
+              <div 
+                onClick={() => navigate('/sales')}
+                style={{ padding: '1rem', backgroundColor: 'rgba(250, 204, 21, 0.1)', borderRadius: '8px', border: '1px solid rgba(250, 204, 21, 0.3)', cursor: 'pointer' }}
+              >
                 <p style={{ margin: 0, color: 'var(--text-main)', fontSize: '1rem', fontWeight: 'bold' }}>Net Cash in Drawer</p>
                 <h3 style={{ margin: '0.5rem 0 0 0', color: 'var(--primary-yellow)', fontSize: '1.8rem', fontWeight: '800' }}>Rs. {businessSummary.netCash.toLocaleString()}</h3>
               </div>
