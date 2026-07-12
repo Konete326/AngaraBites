@@ -32,11 +32,11 @@ const Dashboard = () => {
     try {
       const [summaryRes, salesRes] = await Promise.all([
         axios.get(getApiUrl('/api/dashboard/today')),
-        axios.get(getApiUrl('/api/sales'))
+        axios.get(getApiUrl('/api/sales?limit=5'))
       ]);
       const summary = summaryRes.data || { totalSales: 0, totalExpenses: 0, netCash: 0 };
       setBusinessSummary(summary);
-      const sales = Array.isArray(salesRes.data) ? salesRes.data.slice(0, 5) : [];
+      const sales = Array.isArray(salesRes.data) ? salesRes.data : [];
       setRecentSales(sales);
       setLoading(false);
     } catch (err) {

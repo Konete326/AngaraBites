@@ -37,7 +37,12 @@ async function decrementItemStock(itemId, quantity) {
 
 router.get('/', async (req, res) => {
     try {
-        const sales = await Sale.find().sort({ createdAt: -1 });
+        const limit = parseInt(req.query.limit, 10);
+        const query = Sale.find().sort({ createdAt: -1 });
+        if (limit > 0) {
+            query.limit(limit);
+        }
+        const sales = await query;
         res.json(sales);
     } catch (err) {
         res.status(500).json({ message: err.message });
