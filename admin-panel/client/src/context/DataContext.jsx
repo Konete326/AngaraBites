@@ -19,12 +19,11 @@ export const DataProvider = ({ children }) => {
   const fetchAllData = async () => {
     setIsDataLoading(true);
     try {
-      const baseUrl = getApiUrl('');
       const [itemsRes, catsRes, dealsRes, ingRes] = await Promise.all([
-        axios.get(`${baseUrl}/api/items`),
-        axios.get(`${baseUrl}/api/categories`),
-        axios.get(`${baseUrl}/api/deals`),
-        axios.get(`${baseUrl}/api/ingredients`)
+        axios.get(getApiUrl('/api/items')),
+        axios.get(getApiUrl('/api/categories')),
+        axios.get(getApiUrl('/api/deals')),
+        axios.get(getApiUrl('/api/ingredients'))
       ]);
       
       setItems(itemsRes.data);
