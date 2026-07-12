@@ -1,0 +1,63 @@
+{
+  "name": "angara-admin-panel",
+  "version": "1.2.1",
+  "scripts": {
+    "start:server": "cd server && npm run dev",
+    "start:client": "cd client && npm run dev",
+    "dev": "concurrently \"npm run start:server\" \"npm run start:client\"",
+    "dev:electron": "electron .",
+    "build:react": "cd client && npm run build",
+    "dist": "npm run build:react && electron-builder"
+  },
+  "main": "electron-main.js",
+  "build": {
+    "appId": "com.angara.adminpanel",
+    "productName": "Angara Admin",
+    "icon": "client/src/assets/logo.png",
+    "directories": {
+      "output": "release"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "maazasad86",
+        "repo": "Angara"
+      }
+    ],
+    "files": [
+      "electron-main.js",
+      "server/**/*",
+      "client/dist/**/*",
+      "node_modules/**/*",
+      "!server/node_modules",
+      "!client/node_modules"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "description": "Angara Admin Panel Desktop Application",
+  "author": "konete326",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cloudinary": "^1.41.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "electron-updater": "^6.8.9",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.7.3",
+    "multer": "^2.2.0",
+    "multer-storage-cloudinary": "^4.0.0",
+    "node-thermal-printer": "^4.6.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "electron": "^42.5.0",
+    "electron-builder": "^26.15.3"
+  }
+}
