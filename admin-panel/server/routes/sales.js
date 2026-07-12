@@ -9,24 +9,30 @@ async function decrementItemStock(itemId, quantity) {
     const item = await Item.findById(itemId);
     if (!item) return;
 
+    const updates = [];
+
     if (item.trackDirectStock) {
         item.stockQuantity = Math.max(0, item.stockQuantity - quantity);
         if (item.stockQuantity === 0) {
             item.isAvailable = false;
         }
-        await item.save();
+        updates.push(item.save());
     }
 
     if (item.recipe && item.recipe.length > 0) {
         for (const element of item.recipe) {
-            const ingredient = await Ingredient.findById(element.ingredientId);
-            if (ingredient) {
-                const requiredAmt = element.quantityRequired * quantity;
-                ingredient.stockQuantity = Math.max(0, ingredient.stockQuantity - requiredAmt);
-                await ingredient.save();
-            }
+            updates.push((async () => {
+                const ingredient = await Ingredient.findById(element.ingredientId);
+                if (ingredient) {
+                    const requiredAmt = element.quantityRequired * quantity;
+                    ingredient.stockQuantity = Math.max(0, ingredient.stockQuantity - requiredAmt);
+                    await ingredient.save();
+                }
+            })());
         }
     }
+
+    await Promise.all(updates);
 }
 
 router.get('/', async (req, res) => {
@@ -57,19 +63,26 @@ router.post('/', async (req, res) => {
             customerPhone: customerPhone || ''
         });
 
+        const stockPromises = [];
+        const dealIds = items.filter(i => i.type === 'deal').map(i => i.itemId);
+        const deals = await Promise.all(dealIds.map(id => Deal.findById(id)));
+        const dealMap = new Map(deals.filter(Boolean).map(d => [d._id.toString(), d]));
+
         for (const saleItem of items) {
             if (saleItem.type === 'item') {
-                await decrementItemStock(saleItem.itemId, saleItem.quantity);
+                stockPromises.push(decrementItemStock(saleItem.itemId, saleItem.quantity));
             } else if (saleItem.type === 'deal') {
-                const deal = await Deal.findById(saleItem.itemId);
+                const deal = dealMap.get(saleItem.itemId.toString());
                 if (deal) {
                     for (const di of deal.items) {
                         const totalQty = di.quantity * saleItem.quantity;
-                        await decrementItemStock(di.item, totalQty);
+                        stockPromises.push(decrementItemStock(di.item, totalQty));
                     }
                 }
             }
         }
+
+        await Promise.all(stockPromises);
 
         const newSale = await sale.save();
         res.status(201).json(newSale);
