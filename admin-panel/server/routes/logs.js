@@ -37,6 +37,11 @@ router.get('/', async (req, res) => {
         if (search) {
             query.message = { $regex: search, $options: 'i' };
         }
+        if (req.query.date) {
+            const start = new Date(req.query.date + 'T00:00:00.000Z');
+            const end = new Date(req.query.date + 'T23:59:59.999Z');
+            query.timestamp = { $gte: start, $lte: end };
+        }
 
         const total = await Log.countDocuments(query);
         const logs = await Log.find(query)

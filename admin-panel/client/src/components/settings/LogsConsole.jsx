@@ -13,6 +13,7 @@ const LogsConsole = ({ setGlobalNotification }) => {
   const [logsTotal, setLogsTotal] = useState(0);
   const [logsFilterLevel, setLogsFilterLevel] = useState('all');
   const [logsSearch, setLogsSearch] = useState('');
+  const [logsFilterDate, setLogsFilterDate] = useState('');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
 
@@ -34,7 +35,8 @@ const LogsConsole = ({ setGlobalNotification }) => {
           page,
           limit: 10,
           level: logsFilterLevel,
-          search: logsSearch
+          search: logsSearch,
+          date: logsFilterDate
         }
       });
       setLogs(res.data.logs);
@@ -68,7 +70,7 @@ const LogsConsole = ({ setGlobalNotification }) => {
 
   useEffect(() => {
     fetchLogs(logsPage);
-  }, [logsPage, logsFilterLevel]);
+  }, [logsPage, logsFilterLevel, logsFilterDate]);
 
   return (
     <div className="glass-card" style={{ flex: 1, padding: '1.25rem 1.5rem', minHeight: '280px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -126,6 +128,40 @@ const LogsConsole = ({ setGlobalNotification }) => {
       </div>
 
       <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)', padding: '0.5rem 0.75rem', borderRadius: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted)' }}>Date:</span>
+          <input
+            type="date"
+            value={logsFilterDate}
+            onChange={(e) => { setLogsFilterDate(e.target.value); setLogsPage(1); }}
+            style={{
+              padding: '0.2rem 0.4rem',
+              fontSize: '0.8rem',
+              borderRadius: '6px',
+              backgroundColor: 'var(--glass)',
+              border: '1px solid var(--glass-border)',
+              color: 'var(--text-main)',
+              colorScheme: 'dark'
+            }}
+          />
+          {logsFilterDate && (
+            <button
+              onClick={() => { setLogsFilterDate(''); setLogsPage(1); }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--accent-red)',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+                fontWeight: '700',
+                padding: '2px'
+              }}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted)' }}>Level:</span>
           <select
