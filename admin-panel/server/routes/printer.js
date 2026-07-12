@@ -79,9 +79,22 @@ function padLine(left, right, W) {
 }
 
 async function getDefaultPrinter() {
-    const { stdout } = await execAsync('wmic printer where Default=TRUE get Name /value');
-    const match = stdout.match(/Name=(.+)/);
-    return match ? match[1].trim().replace(/\r/g, '') : null;
+    try {
+        if (process.platform !== 'win32') {
+            if (process.platform === 'darwin') {
+                const { stdout } = await execAsync('lpstat -d');
+                const match = stdout.match(/system default destination: (.+)/);
+                return match ? match[1].trim() : null;
+            }
+            return null;
+        }
+        const { stdout } = await execAsync('wmic printer where Default=TRUE get Name /value');
+        const match = stdout.match(/Name=(.+)/);
+        return match ? match[1].trim().replace(/\r/g, '') : null;
+    } catch (e) {
+        console.error(e.message);
+        return null;
+    }
 }
 
 async function resolveActivePrinter() {
