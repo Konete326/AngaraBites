@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { getApiUrl } from '../utils/api';
+
 
 const DataContext = createContext();
 
@@ -17,8 +19,7 @@ export const DataProvider = ({ children }) => {
   const fetchAllData = async () => {
     setIsDataLoading(true);
     try {
-      const host = window.location.hostname === 'localhost' ? '127.0.0.1' : (window.location.hostname || '127.0.0.1');
-      const baseUrl = `http://${host}:5000`;
+      const baseUrl = getApiUrl('');
       const [itemsRes, catsRes, dealsRes, ingRes] = await Promise.all([
         axios.get(`${baseUrl}/api/items`),
         axios.get(`${baseUrl}/api/categories`),

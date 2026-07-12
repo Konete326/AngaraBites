@@ -4,6 +4,8 @@ import { PlusCircle, X, Upload, Package, Save, Tag, Layers, Flame } from 'lucide
 import { Spinner } from '../ui/spinner-1';
 import imageCompression from 'browser-image-compression';
 import { useData } from '../../context/DataContext';
+import { getApiUrl } from '../../utils/api';
+
 
 const ItemCreatorModal = ({ isOpen, onClose, itemToEdit, categories, refreshData }) => {
   const { ingredients } = useData();
@@ -179,13 +181,14 @@ const ItemCreatorModal = ({ isOpen, onClose, itemToEdit, categories, refreshData
 
     try {
       if (itemToEdit) {
-        await axios.put(`http://${(window.location.hostname || 'localhost')}:5000/api/items/${itemToEdit._id}`, data);
+        await axios.put(getApiUrl(`/api/items/${itemToEdit._id}`), data);
       } else {
-        await axios.post(`http://${(window.location.hostname || 'localhost')}:5000/api/items`, data, {
+        await axios.post(getApiUrl('/api/items'), data, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
       }
       refreshData();
+
       onClose();
     } catch (err) {
       alert(err.response?.data?.message || 'Error saving item');

@@ -3,6 +3,8 @@ import axios from 'axios';
 import Layout from '../components/Layout';
 import { Spinner } from '../components/ui/spinner-1';
 import ConfirmModal from '../components/ConfirmModal';
+import { getApiUrl } from '../utils/api';
+
 import { 
   Plus, 
   Edit2, 
@@ -170,7 +172,7 @@ const Expenses = () => {
 
   const fetchExpenses = async () => {
     try {
-      const res = await axios.get(`http://${(window.location.hostname || 'localhost')}:5000/api/expenses`);
+      const res = await axios.get(getApiUrl('/api/expenses'));
       setExpenses(res.data);
       setLoading(false);
     } catch (err) {
@@ -182,9 +184,9 @@ const Expenses = () => {
   const handleSave = async (data) => {
     try {
       if (editingExpense) {
-        await axios.put(`http://${(window.location.hostname || 'localhost')}:5000/api/expenses/${editingExpense._id}`, data);
+        await axios.put(getApiUrl(`/api/expenses/${editingExpense._id}`), data);
       } else {
-        await axios.post(`http://${(window.location.hostname || 'localhost')}:5000/api/expenses`, data);
+        await axios.post(getApiUrl('/api/expenses'), data);
       }
       setShowModal(false);
       setEditingExpense(null);
@@ -202,12 +204,13 @@ const Expenses = () => {
 
   const confirmDelete = async () => {
     try {
-      await axios.delete(`http://${(window.location.hostname || 'localhost')}:5000/api/expenses/${deleteId}`);
+      await axios.delete(getApiUrl(`/api/expenses/${deleteId}`));
       setShowDeleteConfirm(false);
       fetchExpenses();
     } catch (err) {
       console.error(err);
       alert('Error deleting expense');
+
     }
   };
 

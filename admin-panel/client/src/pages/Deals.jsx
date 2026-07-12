@@ -15,6 +15,8 @@ import {
 import DealCreator from '../components/deals/DealCreator';
 import DealViewerModal from '../components/deals/DealViewerModal';
 import { useData } from '../context/DataContext';
+import { getApiUrl } from '../utils/api';
+
 
 const Deals = () => {
   const { deals, items, categories, isDataLoading, refreshData } = useData();
@@ -61,13 +63,14 @@ const Deals = () => {
     const id = confirmModal.dealId;
     if (!id) return;
     try {
-      await axios.delete(`http://${(window.location.hostname || 'localhost')}:5000/api/deals/${id}`);
+      await axios.delete(getApiUrl(`/api/deals/${id}`));
       refreshData();
       setConfirmModal({ isOpen: false, dealId: null });
     } catch (err) {
       console.error(err);
     }
   };
+
 
   const handleDealSaved = (savedDeal, isEdit) => {
     refreshData();

@@ -5,6 +5,8 @@ import { Spinner } from '../components/ui/spinner-1';
 import ConfirmModal from '../components/ConfirmModal';
 import { Plus, Edit2, Trash2, X, Check } from 'lucide-react';
 import { useData } from '../context/DataContext';
+import { getApiUrl } from '../utils/api';
+
 
 const CategoryFormModal = ({ onClose, onAdd, existingCategories = [] }) => {
   const [name, setName] = useState('');
@@ -87,17 +89,18 @@ const Categories = () => {
         // Merge existing subcategories with new ones, avoiding duplicates
         const mergedSubCategories = Array.from(new Set([...(existing.subCategories || []), ...subCategories]));
 
-        await axios.put(`http://${(window.location.hostname || 'localhost')}:5000/api/categories/${existing._id}`, {
+        await axios.put(getApiUrl(`/api/categories/${existing._id}`), {
           name: existing.name,
           subCategories: mergedSubCategories
         });
       } else {
         // Create new category
-        await axios.post(`http://${(window.location.hostname || 'localhost')}:5000/api/categories`, { name, subCategories });
+        await axios.post(getApiUrl('/api/categories'), { name, subCategories });
       }
 
       setShowModal(false);
       refreshData();
+
     } catch (err) {
       console.error("Category Add Error: ", err);
       alert(err.response?.data?.message || err.message || 'Error saving category');
@@ -111,13 +114,14 @@ const Categories = () => {
   const handleDelete = async () => {
     if (!deleteId) return;
     try {
-      await axios.delete(`http://${(window.location.hostname || 'localhost')}:5000/api/categories/${deleteId}`);
+      await axios.delete(getApiUrl(`/api/categories/${deleteId}`));
       refreshData();
       setDeleteId(null);
     } catch (err) {
       alert('Error deleting category');
     }
   };
+
 
   const handleEdit = (category) => {
     setIsEditing(category._id);
@@ -128,7 +132,7 @@ const Categories = () => {
   const handleUpdate = async (id) => {
     try {
       const subCategories = editSubCategories.split(',').map(s => s.trim()).filter(s => s);
-      await axios.put(`http://${(window.location.hostname || 'localhost')}:5000/api/categories/${id}`, {
+      await axios.put(getApiUrl(`/api/categories/${id}`), {
         name: editName,
         subCategories
       });
@@ -138,6 +142,7 @@ const Categories = () => {
       alert('Error updating category');
     }
   };
+
 
   if (isDataLoading) {
     return (

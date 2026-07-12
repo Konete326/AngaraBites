@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, Minus, Trash2, Package, Tag, Save, Upload, X } from 'lucide-react';
 import axios from 'axios';
+import { getApiUrl } from '../../utils/api';
+
 
 const DealCreator = ({ items, categories, initialData, onSave, onCancel }) => {
   const [dealName, setDealName] = useState('');
@@ -114,12 +116,13 @@ const DealCreator = ({ items, categories, initialData, onSave, onCancel }) => {
 
     try {
       if (initialData) {
-        const res = await axios.put(`http://${(window.location.hostname || 'localhost')}:5000/api/deals/${initialData._id}`, data);
+        const res = await axios.put(getApiUrl(`/api/deals/${initialData._id}`), data);
         onSave(res.data, true);
       } else {
-        const res = await axios.post(`http://${(window.location.hostname || 'localhost')}:5000/api/deals`, data);
+        const res = await axios.post(getApiUrl('/api/deals'), data);
         onSave(res.data, false);
       }
+
     } catch (err) {
       console.error(err);
       alert('Failed to save deal');
