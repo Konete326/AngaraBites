@@ -48,7 +48,7 @@ app.use(async (req, res, next) => {
             return next();
         }
         await mongoose.connect(process.env.MONGO_URI, {
-            serverSelectionTimeoutMS: 15000
+            serverSelectionTimeoutMS: 8000
         });
         next();
     } catch (err) {
@@ -87,7 +87,7 @@ app.listen(PORT, () => {
 });
 
 mongoose.connect(process.env.MONGO_URI, {
-    serverSelectionTimeoutMS: 15000
+    serverSelectionTimeoutMS: 8000
 })
     .then(() => {
         console.log('MongoDB Connected Successfully');
