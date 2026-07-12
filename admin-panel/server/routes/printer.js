@@ -12,9 +12,11 @@ const https = require('https');
 const { upload, uploadToCloudinary } = require('../middleware/cloudinary');
 const Setting = require('../models/Setting');
 
-const USER_DATA_DIR = process.env.APPDATA 
-    ? path.join(process.env.APPDATA, 'Angara') 
-    : path.join(os.homedir(), '.angara');
+const USER_DATA_DIR = process.env.VERCEL
+    ? path.join('/tmp', '.angara')
+    : (process.env.APPDATA 
+        ? path.join(process.env.APPDATA, 'Angara') 
+        : path.join(os.homedir(), '.angara'));
 
 if (!fs.existsSync(USER_DATA_DIR)) {
     try {
@@ -23,6 +25,7 @@ if (!fs.existsSync(USER_DATA_DIR)) {
         console.error(e);
     }
 }
+
 
 const PRINTER_CONFIG_FILE = path.join(USER_DATA_DIR, 'printer_config.json');
 
