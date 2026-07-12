@@ -70,6 +70,7 @@ app.use('/api/sales', require('./routes/sales'));
 app.use('/api/expenses', require('./routes/expenses'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/print', require('./routes/printer'));
+app.use('/api/logs', require('./routes/logs'));
 
 // Catch-all 404 for API routes
 app.use((req, res, next) => {

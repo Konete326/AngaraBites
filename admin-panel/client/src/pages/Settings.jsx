@@ -6,6 +6,7 @@ import { getApiUrl } from '../utils/api';
 import printLogoImg from '../assets/printlogo.jpeg';
 import { Spinner } from '../components/ui/spinner-1';
 import ConfirmModal from '../components/ConfirmModal';
+import LogsConsole from '../components/settings/LogsConsole';
 import { 
   Save, 
   Printer, 
@@ -17,7 +18,10 @@ import {
   Trash2,
   Info,
   Upload,
-  ImageIcon
+  ImageIcon,
+  FileText,
+  Search,
+  Terminal
 } from 'lucide-react';
 
 const Settings = () => {
@@ -364,298 +368,316 @@ const Settings = () => {
               <span style={styles.gridSubtitle}>Clean records & view stats</span>
             </div>
           </button>
+
+          <button 
+            onClick={() => { setActiveTab('logs'); setNotification(null); }}
+            style={{
+              ...styles.gridItem,
+              borderBottom: activeTab === 'logs' ? '3px solid var(--primary-yellow)' : '1px solid var(--glass-border)',
+              backgroundColor: activeTab === 'logs' ? 'rgba(255, 255, 255, 0.03)' : 'transparent'
+            }}
+          >
+            <FileText size={20} color={activeTab === 'logs' ? 'var(--primary-yellow)' : 'var(--text-muted)'} />
+            <div style={styles.gridTextContainer}>
+              <span style={{ ...styles.gridTitle, color: activeTab === 'logs' ? 'var(--text-main)' : 'var(--text-muted)' }}>System Logs</span>
+              <span style={styles.gridSubtitle}>Console errors & warnings</span>
+            </div>
+          </button>
         </div>
 
+        {notification && (
+          <div style={{
+            ...styles.notification,
+            backgroundColor: notification.type === 'success' ? 'rgba(74, 222, 128, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+            borderColor: notification.type === 'success' ? '#4ade80' : '#ef4444',
+            color: notification.type === 'success' ? '#4ade80' : '#ef4444',
+            maxWidth: '100%'
+          }}>
+            {notification.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+            <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>{notification.message}</span>
+          </div>
+        )}
+
         <div style={styles.sectionRowContainer}>
-          <div className="glass-card" style={styles.sectionRowLeft}>
-            {notification && (
-              <div style={{
-                ...styles.notification,
-                backgroundColor: notification.type === 'success' ? 'rgba(74, 222, 128, 0.08)' : 'rgba(239, 68, 68, 0.08)',
-                borderColor: notification.type === 'success' ? '#4ade80' : '#ef4444',
-                color: notification.type === 'success' ? '#4ade80' : '#ef4444'
-              }}>
-                {notification.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-                <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>{notification.message}</span>
-              </div>
-            )}
-
-            {loading ? (
-              <div style={styles.spinnerContainer}>
-                <Spinner />
-              </div>
-            ) : (
-              activeTab === 'printer' ? (
-                <form onSubmit={handleSavePrinter} style={styles.form}>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Connection Type</label>
-                    <select
-                      value={config.type}
-                      onChange={(e) => setConfig({ ...config, type: e.target.value })}
-                      style={styles.select}
-                      required
-                    >
-                      <option value="auto">Auto Detect (Default OS Printer)</option>
-                      <option value="windows">Windows Printer Name</option>
-                      <option value="tcp">Network (TCP/IP) Printer</option>
-                    </select>
+          {activeTab === 'logs' ? (
+            <LogsConsole setGlobalNotification={setNotification} />
+          ) : (
+            <>
+              <div className="glass-card" style={styles.sectionRowLeft}>
+                {loading ? (
+                  <div style={styles.spinnerContainer}>
+                    <Spinner />
                   </div>
-
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Paper Size / Roll Width</label>
-                    <select
-                      value={config.width}
-                      onChange={(e) => setConfig({ ...config, width: parseInt(e.target.value, 10) })}
-                      style={styles.select}
-                      required
-                    >
-                      <option value={36}>80mm Roll (36 Characters Width)</option>
-                      <option value={32}>58mm Roll (32 Characters Width)</option>
-                    </select>
-                  </div>
-
-                  {config.type === 'windows' && (
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Printer Name</label>
-                      <input
-                        type="text"
-                        value={config.name}
-                        onChange={(e) => setConfig({ ...config, name: e.target.value })}
-                        placeholder="e.g. POS-80"
-                        style={styles.input}
-                        required
-                      />
-                    </div>
-                  )}
-
-                  {config.type === 'tcp' && (
-                    <div style={styles.gridInput}>
+                ) : (
+                  activeTab === 'printer' ? (
+                    <form onSubmit={handleSavePrinter} style={styles.form}>
                       <div style={styles.formGroup}>
-                        <label style={styles.label}>IP Address</label>
+                        <label style={styles.label}>Connection Type</label>
+                        <select
+                          value={config.type}
+                          onChange={(e) => setConfig({ ...config, type: e.target.value })}
+                          style={styles.select}
+                          required
+                        >
+                          <option value="auto">Auto Detect (Default OS Printer)</option>
+                          <option value="windows">Windows Printer Name</option>
+                          <option value="tcp">Network (TCP/IP) Printer</option>
+                        </select>
+                      </div>
+
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Paper Size / Roll Width</label>
+                        <select
+                          value={config.width}
+                          onChange={(e) => setConfig({ ...config, width: parseInt(e.target.value, 10) })}
+                          style={styles.select}
+                          required
+                        >
+                          <option value={36}>80mm Roll (36 Characters Width)</option>
+                          <option value={32}>58mm Roll (32 Characters Width)</option>
+                        </select>
+                      </div>
+
+                      {config.type === 'windows' && (
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>Printer Name</label>
+                          <input
+                            type="text"
+                            value={config.name}
+                            onChange={(e) => setConfig({ ...config, name: e.target.value })}
+                            placeholder="e.g. POS-80"
+                            style={styles.input}
+                            required
+                          />
+                        </div>
+                      )}
+
+                      {config.type === 'tcp' && (
+                        <div style={styles.gridInput}>
+                          <div style={styles.formGroup}>
+                            <label style={styles.label}>IP Address</label>
+                            <input
+                              type="text"
+                              value={config.host}
+                              onChange={(e) => setConfig({ ...config, host: e.target.value })}
+                              placeholder="e.g. 192.168.1.100"
+                              style={styles.input}
+                              required
+                            />
+                          </div>
+                          <div style={styles.formGroup}>
+                            <label style={styles.label}>Port</label>
+                            <input
+                              type="number"
+                              value={config.port}
+                              onChange={(e) => setConfig({ ...config, port: e.target.value })}
+                              placeholder="9100"
+                              style={styles.input}
+                              required
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {status && (
+                        <div style={styles.statusBox}>
+                          <div style={styles.statusLine}>
+                            <span style={styles.statusLabel}>Active Printer Path:</span>
+                            <span style={styles.statusValue}>{status.printer || 'Not Detected'}</span>
+                          </div>
+                          <div style={styles.statusLine}>
+                            <span style={styles.statusLabel}>Active Connection Type:</span>
+                            <span style={{ ...styles.statusValue, textTransform: 'uppercase' }}>{status.type}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      <button type="submit" style={styles.saveBtn} disabled={saving}>
+                        <Save size={18} />
+                        <span>{saving ? 'Saving...' : 'Save Configuration'}</span>
+                      </button>
+                    </form>
+                  ) : activeTab === 'profile' ? (
+                    <form onSubmit={(e) => { e.preventDefault(); setShowSaveProfileConfirm(true); }} style={styles.form}>
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Store Name (Receipt Header)</label>
                         <input
                           type="text"
-                          value={config.host}
-                          onChange={(e) => setConfig({ ...config, host: e.target.value })}
-                          placeholder="e.g. 192.168.1.100"
+                          value={storeConfig.storeName}
+                          onChange={(e) => setStoreConfig({ ...storeConfig, storeName: e.target.value })}
+                          placeholder="e.g. Angaara Bites"
                           style={styles.input}
                           required
                         />
                       </div>
+
                       <div style={styles.formGroup}>
-                        <label style={styles.label}>Port</label>
+                        <label style={styles.label}>Phone Number</label>
                         <input
-                          type="number"
-                          value={config.port}
-                          onChange={(e) => setConfig({ ...config, port: e.target.value })}
-                          placeholder="9100"
+                          type="text"
+                          value={storeConfig.phone}
+                          onChange={(e) => setStoreConfig({ ...storeConfig, phone: e.target.value })}
+                          placeholder="e.g. +92 3342471192"
                           style={styles.input}
                           required
                         />
                       </div>
-                    </div>
-                  )}
 
-                  {status && (
-                    <div style={styles.statusBox}>
-                      <div style={styles.statusLine}>
-                        <span style={styles.statusLabel}>Active Printer Path:</span>
-                        <span style={styles.statusValue}>{status.printer || 'Not Detected'}</span>
+                      <div style={styles.formGroup}>
+                        <label style={styles.label}>Receipt Footer Note</label>
+                        <input
+                          type="text"
+                          value={storeConfig.footerNote}
+                          onChange={(e) => setStoreConfig({ ...storeConfig, footerNote: e.target.value })}
+                          placeholder="e.g. Thank You! Please Visit Again."
+                          style={styles.input}
+                          required
+                        />
                       </div>
-                      <div style={styles.statusLine}>
-                        <span style={styles.statusLabel}>Active Connection Type:</span>
-                        <span style={{ ...styles.statusValue, textTransform: 'uppercase' }}>{status.type}</span>
+
+                      <button type="submit" style={styles.saveBtn} disabled={saving}>
+                        <Save size={18} />
+                        <span>{saving ? 'Saving...' : 'Save Profile'}</span>
+                      </button>
+                    </form>
+                  ) : (
+                    <div style={styles.dbContainer}>
+                      <div style={styles.dbStatsGrid}>
+                        <div style={styles.statCard}>
+                          <span style={styles.statLabel}>Total Sales Records</span>
+                          <span style={styles.statValueText}>{dbStats.totalSales}</span>
+                        </div>
+                        <div style={styles.statCard}>
+                          <span style={styles.statLabel}>Total Expenses Records</span>
+                          <span style={styles.statValueText}>{dbStats.totalExpenses}</span>
+                        </div>
                       </div>
                     </div>
-                  )}
+                  )
+                )}
+              </div>
 
-                  <button type="submit" style={styles.saveBtn} disabled={saving}>
-                    <Save size={18} />
-                    <span>{saving ? 'Saving...' : 'Save Configuration'}</span>
-                  </button>
-                </form>
-              ) : activeTab === 'profile' ? (
-                <form onSubmit={(e) => { e.preventDefault(); setShowSaveProfileConfirm(true); }} style={styles.form}>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Store Name (Receipt Header)</label>
-                    <input
-                      type="text"
-                      value={storeConfig.storeName}
-                      onChange={(e) => setStoreConfig({ ...storeConfig, storeName: e.target.value })}
-                      placeholder="e.g. Angaara Bites"
-                      style={styles.input}
-                      required
-                    />
-                  </div>
-
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Phone Number</label>
-                    <input
-                      type="text"
-                      value={storeConfig.phone}
-                      onChange={(e) => setStoreConfig({ ...storeConfig, phone: e.target.value })}
-                      placeholder="e.g. +92 3342471192"
-                      style={styles.input}
-                      required
-                    />
-                  </div>
-
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Receipt Footer Note</label>
-                    <input
-                      type="text"
-                      value={storeConfig.footerNote}
-                      onChange={(e) => setStoreConfig({ ...storeConfig, footerNote: e.target.value })}
-                      placeholder="e.g. Thank You! Please Visit Again."
-                      style={styles.input}
-                      required
-                    />
-                  </div>
-
-
-
-                  <button type="submit" style={styles.saveBtn} disabled={saving}>
-                    <Save size={18} />
-                    <span>{saving ? 'Saving...' : 'Save Profile'}</span>
-                  </button>
-                </form>
-              ) : (
-                <div style={styles.dbContainer}>
-                  <div style={styles.dbStatsGrid}>
-                    <div style={styles.statCard}>
-                      <span style={styles.statLabel}>Total Sales Records</span>
-                      <span style={styles.statValueText}>{dbStats.totalSales}</span>
+              <div className="glass-card" style={styles.sectionRowRight}>
+                {activeTab === 'printer' && (
+                  <>
+                    <div style={styles.previewHeader}>
+                      <Printer size={18} color="var(--primary-yellow)" />
+                      <h3 style={styles.previewTitle}>Print Preview</h3>
                     </div>
-                    <div style={styles.statCard}>
-                      <span style={styles.statLabel}>Total Expenses Records</span>
-                      <span style={styles.statValueText}>{dbStats.totalExpenses}</span>
+                    <p style={styles.previewSubtitle}>View simulated print layout exactly as it will emerge from the ticket machine.</p>
+                    <div style={styles.previewBtnContainer}>
+                      <button onClick={() => setShowReceiptTypeModal(true)} style={styles.previewBtn}>
+                        Customer Receipt
+                      </button>
+                      <button onClick={() => triggerPreview('KOT_DESI')} style={styles.previewBtn}>
+                        KOT (Desi Kitchen)
+                      </button>
+                      <button onClick={() => triggerPreview('KOT_FASTFOOD')} style={styles.previewBtn}>
+                        KOT (Fast Food)
+                      </button>
                     </div>
-                  </div>
+                  </>
+                )}
 
-
-                </div>
-              )
-            )}
-          </div>
-
-          <div className="glass-card" style={styles.sectionRowRight}>
-            {activeTab === 'printer' && (
-              <>
-                <div style={styles.previewHeader}>
-                  <Printer size={18} color="var(--primary-yellow)" />
-                  <h3 style={styles.previewTitle}>Print Preview</h3>
-                </div>
-                <p style={styles.previewSubtitle}>View simulated print layout exactly as it will emerge from the ticket machine.</p>
-                <div style={styles.previewBtnContainer}>
-                  <button onClick={() => setShowReceiptTypeModal(true)} style={styles.previewBtn}>
-                    Customer Receipt
-                  </button>
-                  <button onClick={() => triggerPreview('KOT_DESI')} style={styles.previewBtn}>
-                    KOT (Desi Kitchen)
-                  </button>
-                  <button onClick={() => triggerPreview('KOT_FASTFOOD')} style={styles.previewBtn}>
-                    KOT (Fast Food)
-                  </button>
-                </div>
-              </>
-            )}
-
-            {activeTab === 'profile' && (
-              <>
-                <div style={styles.previewHeader}>
-                  <ImageIcon size={18} color="var(--primary-yellow)" />
-                  <h3 style={styles.previewTitle}>Receipt Logo</h3>
-                </div>
-                <div style={{ ...styles.logoUploadContainer, flexDirection: 'column' }}>
-                  <div style={{ ...styles.logoPreviewBox, width: '100%', maxWidth: '200px', margin: '0 auto', height: '140px' }}>
-                    {logoPreview ? (
-                      <img
-                        src={logoPreview}
-                        alt="Print Logo"
-                        style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '6px' }}
-                      />
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '0.4rem', color: 'var(--text-muted)' }}>
-                        <ImageIcon size={28} />
-                        <span style={{ fontSize: '0.75rem' }}>No logo</span>
+                {activeTab === 'profile' && (
+                  <>
+                    <div style={styles.previewHeader}>
+                      <ImageIcon size={18} color="var(--primary-yellow)" />
+                      <h3 style={styles.previewTitle}>Receipt Logo</h3>
+                    </div>
+                    <div style={{ ...styles.logoUploadContainer, flexDirection: 'column' }}>
+                      <div style={{ ...styles.logoPreviewBox, width: '100%', maxWidth: '200px', margin: '0 auto', height: '140px' }}>
+                        {logoPreview ? (
+                          <img
+                            src={logoPreview}
+                            alt="Print Logo"
+                            style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '6px' }}
+                          />
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '0.4rem', color: 'var(--text-muted)' }}>
+                            <ImageIcon size={28} />
+                            <span style={{ fontSize: '0.75rem' }}>No logo</span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
-                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.4', textAlign: 'center' }}>
-                      Logo appears at the top of customer receipts. Default logo is used if none uploaded.
-                    </p>
-                    <input
-                      ref={logoInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoFileSelect}
-                      style={{ display: 'none' }}
-                      id="logo-file-input"
-                    />
-                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                      <label
-                        htmlFor="logo-file-input"
-                        style={{ ...styles.logoPickBtn, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
-                      >
-                        <ImageIcon size={15} />
-                        <span>Choose File</span>
-                      </label>
-                      {logoFile && (
-                        <button
-                          type="button"
-                          onClick={handleLogoUpload}
-                          disabled={logoUploading}
-                          style={{ ...styles.logoUploadBtn }}
-                        >
-                          <Upload size={15} />
-                          <span>{logoUploading ? 'Uploading...' : 'Upload'}</span>
-                        </button>
-                      )}
-                      {storeConfig.logoUrl && !logoFile && (
-                        <button
-                          type="button"
-                          onClick={() => setShowDeleteLogoConfirm(true)}
-                          disabled={logoUploading}
-                          style={{ ...styles.logoUploadBtn, backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-red)', border: '1px solid rgba(239, 68, 68, 0.3)' }}
-                        >
-                          <Trash2 size={15} />
-                          <span>{logoUploading ? 'Removing...' : 'Remove Logo'}</span>
-                        </button>
-                      )}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
+                        <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.4', textAlign: 'center' }}>
+                          Logo appears at the top of customer receipts. Default logo is used if none uploaded.
+                        </p>
+                        <input
+                          ref={logoInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoFileSelect}
+                          style={{ display: 'none' }}
+                          id="logo-file-input"
+                        />
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                          <label
+                            htmlFor="logo-file-input"
+                            style={{ ...styles.logoPickBtn, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
+                          >
+                            <ImageIcon size={15} />
+                            <span>Choose File</span>
+                          </label>
+                          {logoFile && (
+                            <button
+                              type="button"
+                              onClick={handleLogoUpload}
+                              disabled={logoUploading}
+                              style={{ ...styles.logoUploadBtn }}
+                            >
+                              <Upload size={15} />
+                              <span>{logoUploading ? 'Uploading...' : 'Upload'}</span>
+                            </button>
+                          )}
+                          {storeConfig.logoUrl && !logoFile && (
+                            <button
+                              type="button"
+                              onClick={() => setShowDeleteLogoConfirm(true)}
+                              disabled={logoUploading}
+                              style={{ ...styles.logoUploadBtn, backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-red)', border: '1px solid rgba(239, 68, 68, 0.3)' }}
+                            >
+                              <Trash2 size={15} />
+                              <span>{logoUploading ? 'Removing...' : 'Remove Logo'}</span>
+                            </button>
+                          )}
+                        </div>
+                        {logoFile && (
+                          <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--primary-yellow)', textAlign: 'center' }}>
+                            Selected: {logoFile.name}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    {logoFile && (
-                      <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--primary-yellow)', textAlign: 'center' }}>
-                        Selected: {logoFile.name}
+                  </>
+                )}
+
+                {activeTab === 'database' && (
+                  <>
+                    <div style={styles.previewHeader}>
+                      <AlertCircle size={18} color="var(--accent-red)" />
+                      <h3 style={styles.previewTitle}>Danger Zone</h3>
+                    </div>
+                    <div style={styles.infoAlert}>
+                      <Info size={20} color="var(--primary-yellow)" style={{ flexShrink: 0 }} />
+                      <p style={styles.infoText}>
+                        Resetting database tables is permanent. Ensure backups are exported before proceeding.
                       </p>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-
-            {activeTab === 'database' && (
-              <>
-                <div style={styles.previewHeader}>
-                  <AlertCircle size={18} color="var(--accent-red)" />
-                  <h3 style={styles.previewTitle}>Danger Zone</h3>
-                </div>
-                <div style={styles.infoAlert}>
-                  <Info size={20} color="var(--primary-yellow)" style={{ flexShrink: 0 }} />
-                  <p style={styles.infoText}>
-                    Resetting database tables is permanent. Ensure backups are exported before proceeding.
-                  </p>
-                </div>
-                <button 
-                  onClick={() => setShowResetSelectModal(true)} 
-                  style={{ ...styles.resetBtn, width: '100%', marginTop: '0.5rem' }}
-                  disabled={saving}
-                >
-                  <Trash2 size={18} />
-                  <span>Reset Database Records</span>
-                </button>
-              </>
-            )}
-          </div>
+                    </div>
+                    <button 
+                      onClick={() => setShowResetSelectModal(true)} 
+                      style={{ ...styles.resetBtn, width: '100%', marginTop: '0.5rem' }}
+                      disabled={saving}
+                    >
+                      <Trash2 size={18} />
+                      <span>Reset Database Records</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -1055,7 +1077,7 @@ const styles = {
   },
   gridRow: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
+    gridTemplateColumns: 'repeat(4, 1fr)',
     gap: '0.6rem',
     width: '100%',
   },

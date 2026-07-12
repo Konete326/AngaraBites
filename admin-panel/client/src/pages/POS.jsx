@@ -253,9 +253,25 @@ const POS = () => {
     // Check if this is an add-on KOT
     const isAddon = cart.some(item => item.isPrinted);
 
-    let bbqItems = unprintedItems.filter(i => i.kitchenType === 'BBQ');
-    let fastFoodItems = unprintedItems.filter(i => i.kitchenType === 'Fast Food' || !i.kitchenType);
-    let drinkItems = unprintedItems.filter(i => i.kitchenType === 'Drinks/Extras');
+    const getItemsByKitchenType = (typeFilter) => {
+      return unprintedItems
+        .map(item => {
+          if (item.items && item.items.length > 0) {
+            const matchingSubItems = item.items.filter(di => {
+              const kt = di.item?.kitchenType || 'Fast Food';
+              return typeFilter(kt);
+            });
+            return matchingSubItems.length > 0 ? { ...item, items: matchingSubItems } : null;
+          }
+          const kt = item.kitchenType || 'Fast Food';
+          return typeFilter(kt) ? item : null;
+        })
+        .filter(Boolean);
+    };
+
+    let bbqItems = getItemsByKitchenType(kt => kt === 'BBQ');
+    let fastFoodItems = getItemsByKitchenType(kt => kt === 'Fast Food');
+    let drinkItems = getItemsByKitchenType(kt => kt === 'Drinks/Extras');
 
     // Routing drinks based on order composition
     if (fastFoodItems.length > 0) {
