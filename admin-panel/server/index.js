@@ -37,6 +37,30 @@ app.use('/uploads', (req, res) => {
     res.status(404).json({ error: 'Image not found' });
 });
 
+// Middleware to ensure DB connection (critical for serverless environments)
+app.use(async (req, res, next) => {
+    if (mongoose.connection.readyState === 1) {
+        return next();
+    }
+    try {
+        if (mongoose.connection.readyState === 2) {
+            await new Promise((resolve, reject) => {
+                mongoose.connection.once('open', resolve);
+                mongoose.connection.once('error', reject);
+            });
+            return next();
+        }
+        await mongoose.connect(process.env.MONGO_URI, {
+            serverSelectionTimeoutMS: 5000
+        });
+        next();
+    } catch (err) {
+        console.error('Database connection failed in middleware:', err.message);
+        res.status(500).json({ error: 'Database connection failed', details: err.message });
+    }
+});
+
+
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/items', require('./routes/items'));
