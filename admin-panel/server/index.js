@@ -36,6 +36,12 @@ app.use('/uploads', (req, res) => {
 });
 
 app.use(async (req, res, next) => {
+    if (process.env.VERCEL && (!process.env.MONGO_URI || process.env.MONGO_URI.includes('127.0.0.1') || process.env.MONGO_URI.includes('localhost'))) {
+        return res.status(500).json({ 
+            error: 'Database connection failed', 
+            details: 'MONGO_URI environment variable is missing or misconfigured in Vercel Settings. Please set the production MongoDB connection string.' 
+        });
+    }
     if (mongoose.connection.readyState === 1) {
         return next();
     }
