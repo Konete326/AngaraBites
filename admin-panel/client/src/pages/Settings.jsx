@@ -115,6 +115,14 @@ const Settings = () => {
           port: '9100',
           width: res.data.width || 36
         });
+      } else if (res.data.type === 'browser') {
+        setConfig({
+          type: 'browser',
+          name: '',
+          host: '',
+          port: '9100',
+          width: res.data.width || 36
+        });
       } else {
         setConfig({
           type: 'auto',
@@ -419,6 +427,7 @@ const Settings = () => {
                           <option value="auto">Auto Detect (Default OS Printer)</option>
                           <option value="windows">Windows Printer Name</option>
                           <option value="tcp">Network (TCP/IP) Printer</option>
+                          <option value="browser">Web Browser Print Dialog (PWA / Mobile / Vercel)</option>
                         </select>
                       </div>
 

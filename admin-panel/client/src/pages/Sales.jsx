@@ -20,6 +20,7 @@ import { SkeletonTable } from '../components/Skeleton';
 import { useData } from '../context/DataContext';
 import { getApiUrl } from '../utils/api';
 import ConfirmModal from '../components/ConfirmModal';
+import { triggerBrowserPrint } from '../utils/browserPrint';
 
 // Helper: get current business date string (YYYY-MM-DD)
 // Business day starts at 5 PM (17:00) local time.
@@ -82,6 +83,8 @@ const Sales = () => {
   const [alertConfig, setAlertConfig] = useState({ isOpen: false, title: '', message: '', type: 'info' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedSaleForModal, setSelectedSaleForModal] = useState(null);
+  const [printerType, setPrinterType] = useState('auto');
+  const [storeConfig, setStoreConfig] = useState({});
 
 
   useEffect(() => {
@@ -108,6 +111,15 @@ const Sales = () => {
     try {
       const salesRes = await axios.get(getApiUrl('/api/sales'));
       setSales(salesRes.data);
+
+      const statusRes = await axios.get(getApiUrl('/api/print/status'));
+      if (statusRes.data && statusRes.data.type) {
+        setPrinterType(statusRes.data.type);
+      }
+      const storeRes = await axios.get(getApiUrl('/api/print/store-config'));
+      if (storeRes.data) {
+        setStoreConfig(storeRes.data);
+      }
     } catch (err) {
       console.error('Error fetching sales page data:', err);
     } finally {
@@ -141,16 +153,42 @@ const Sales = () => {
     if (!printSale || isSubmitting) return;
     setIsSubmitting(true);
     try {
-      await axios.post(getApiUrl('/api/print'), {
-        type: 'CUSTOMER_RECEIPT',
-        items: printSale.items,
-        orderType: printSale.orderType,
-        customerName: printSale.customerName,
-        customerPhone: printSale.customerPhone,
-        totalAmount: printSale.totalAmount,
-        orderId: printSale._id
-      });
-      setAlertConfig({ isOpen: true, title: 'Success', message: 'Receipt sent to printer successfully!', type: 'success' });
+      const isBrowserPrint = printerType === 'browser' || window.location.hostname.includes('vercel.app');
+
+      if (isBrowserPrint) {
+        triggerBrowserPrint({
+          type: 'CUSTOMER_RECEIPT',
+          items: printSale.items,
+          orderType: printSale.orderType,
+          customerName: printSale.customerName,
+          customerPhone: printSale.customerPhone,
+          totalAmount: printSale.totalAmount,
+          orderId: printSale._id
+        }, storeConfig);
+      } else {
+        const printRes = await axios.post(getApiUrl('/api/print'), {
+          type: 'CUSTOMER_RECEIPT',
+          items: printSale.items,
+          orderType: printSale.orderType,
+          customerName: printSale.customerName,
+          customerPhone: printSale.customerPhone,
+          totalAmount: printSale.totalAmount,
+          orderId: printSale._id
+        });
+
+        if (printRes.data && printRes.data.message && printRes.data.message.includes('Simulated print')) {
+          triggerBrowserPrint({
+            type: 'CUSTOMER_RECEIPT',
+            items: printSale.items,
+            orderType: printSale.orderType,
+            customerName: printSale.customerName,
+            customerPhone: printSale.customerPhone,
+            totalAmount: printSale.totalAmount,
+            orderId: printSale._id
+          }, storeConfig);
+        }
+      }
+      setAlertConfig({ isOpen: true, title: 'Success', message: 'Receipt printed successfully!', type: 'success' });
     } catch (err) {
       console.error(err);
       setAlertConfig({ isOpen: true, title: 'Error', message: 'Error printing receipt. Check printer connection.', type: 'error' });

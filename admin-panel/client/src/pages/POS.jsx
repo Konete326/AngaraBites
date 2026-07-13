@@ -9,6 +9,7 @@ import VariantSelectionModal from '../components/pos/VariantSelectionModal';
 import DealVariantSelectionModal from '../components/pos/DealVariantSelectionModal';
 import { useData } from '../context/DataContext';
 import { getApiUrl } from '../utils/api';
+import { triggerBrowserPrint } from '../utils/browserPrint';
 
 const generateMongoObjectId = () => {
   const timestamp = Math.floor(new Date().getTime() / 1000).toString(16).padStart(8, '0');
@@ -45,6 +46,8 @@ const POS = () => {
   const [printType, setPrintType] = useState('RECEIPT');
   const [heldOrders, setHeldOrders] = useState([]);
   const [showHeldModal, setShowHeldModal] = useState(false);
+  const [printerType, setPrinterType] = useState('auto');
+  const [storeConfig, setStoreConfig] = useState({});
 
   // Custom Modal for Hold Bill
   const [showHoldPrompt, setShowHoldPrompt] = useState(false);
@@ -87,6 +90,24 @@ const POS = () => {
         setHeldOrders(JSON.parse(storedHolds));
       } catch (e) { console.error(e); }
     }
+  }, []);
+
+  useEffect(() => {
+    const fetchPrinterAndStore = async () => {
+      try {
+        const statusRes = await axios.get(getApiUrl('/api/print/status'));
+        if (statusRes.data && statusRes.data.type) {
+          setPrinterType(statusRes.data.type);
+        }
+        const storeRes = await axios.get(getApiUrl('/api/print/store-config'));
+        if (storeRes.data) {
+          setStoreConfig(storeRes.data);
+        }
+      } catch (err) {
+        console.error('Error fetching printer/store status:', err);
+      }
+    };
+    fetchPrinterAndStore();
   }, []);
 
   const addToCart = (item, chosenVariant = null, chosenDealItemVariants = null, customQuantity = 1) => {
@@ -279,32 +300,108 @@ const POS = () => {
     } else if (bbqItems.length > 0) {
       bbqItems = [...bbqItems, ...drinkItems];
     } else if (drinkItems.length > 0) {
-      // If ONLY drinks are ordered, default to fast food slip
       fastFoodItems = [...drinkItems];
     }
 
-    try {
+    const isBrowserPrint = printerType === 'browser' || window.location.hostname.includes('vercel.app');
+
+    if (isBrowserPrint) {
       if (bbqItems.length > 0) {
-        await axios.post(getApiUrl('/api/print'), {
+        triggerBrowserPrint({
+          type: 'KOT_DESI',
+          items: bbqItems,
+          orderType,
+          isAddon,
+          orderId: currentOrderId
+        }, storeConfig);
+      }
+      if (fastFoodItems.length > 0) {
+        if (bbqItems.length > 0) {
+          setTimeout(() => {
+            triggerBrowserPrint({
+              type: 'KOT_FASTFOOD',
+              items: fastFoodItems,
+              orderType,
+              isAddon,
+              orderId: currentOrderId
+            }, storeConfig);
+          }, 1000);
+        } else {
+          triggerBrowserPrint({
+            type: 'KOT_FASTFOOD',
+            items: fastFoodItems,
+            orderType,
+            isAddon,
+            orderId: currentOrderId
+          }, storeConfig);
+        }
+      }
+      setCart(prev => prev.map(i => ({...i, isPrinted: true})));
+      showAlert('KOT sent to kitchen printers successfully!', 'Success', 'success');
+      return;
+    }
+
+    try {
+      let bbqSimulated = false;
+      let fastFoodSimulated = false;
+
+      if (bbqItems.length > 0) {
+        const res = await axios.post(getApiUrl('/api/print'), {
           type: 'KOT_DESI',
           items: bbqItems,
           orderType,
           isAddon,
           orderId: currentOrderId
         });
+        if (res.data && res.data.message && res.data.message.includes('Simulated print')) {
+          bbqSimulated = true;
+        }
       }
       
       if (fastFoodItems.length > 0) {
-        await axios.post(getApiUrl('/api/print'), {
+        const res = await axios.post(getApiUrl('/api/print'), {
           type: 'KOT_FASTFOOD',
           items: fastFoodItems,
           orderType,
           isAddon,
           orderId: currentOrderId
         });
+        if (res.data && res.data.message && res.data.message.includes('Simulated print')) {
+          fastFoodSimulated = true;
+        }
+      }
+
+      if (bbqSimulated) {
+        triggerBrowserPrint({
+          type: 'KOT_DESI',
+          items: bbqItems,
+          orderType,
+          isAddon,
+          orderId: currentOrderId
+        }, storeConfig);
+      }
+      if (fastFoodSimulated) {
+        if (bbqSimulated) {
+          setTimeout(() => {
+            triggerBrowserPrint({
+              type: 'KOT_FASTFOOD',
+              items: fastFoodItems,
+              orderType,
+              isAddon,
+              orderId: currentOrderId
+            }, storeConfig);
+          }, 1000);
+        } else {
+          triggerBrowserPrint({
+            type: 'KOT_FASTFOOD',
+            items: fastFoodItems,
+            orderType,
+            isAddon,
+            orderId: currentOrderId
+          }, storeConfig);
+        }
       }
       
-      // Mark as printed
       setCart(prev => prev.map(i => ({...i, isPrinted: true})));
       showAlert('KOT sent to kitchen printers successfully!', 'Success', 'success');
     } catch (err) {
@@ -401,7 +498,10 @@ const POS = () => {
         customerPhone: orderType === 'Delivery' ? customerPhone : ''
       });
 
-      await axios.post(getApiUrl('/api/print'), {
+      const isBrowserPrint = printerType === 'browser' || window.location.hostname.includes('vercel.app');
+
+      if (isBrowserPrint) {
+        triggerBrowserPrint({
           type: 'CUSTOMER_RECEIPT',
           items: cart,
           orderType,
@@ -409,7 +509,30 @@ const POS = () => {
           customerPhone: orderType === 'Delivery' ? customerPhone : '',
           totalAmount: total,
           orderId: res.data._id
-      });
+        }, storeConfig);
+      } else {
+        const printRes = await axios.post(getApiUrl('/api/print'), {
+          type: 'CUSTOMER_RECEIPT',
+          items: cart,
+          orderType,
+          customerName,
+          customerPhone: orderType === 'Delivery' ? customerPhone : '',
+          totalAmount: total,
+          orderId: res.data._id
+        });
+
+        if (printRes.data && printRes.data.message && printRes.data.message.includes('Simulated print')) {
+          triggerBrowserPrint({
+            type: 'CUSTOMER_RECEIPT',
+            items: cart,
+            orderType,
+            customerName,
+            customerPhone: orderType === 'Delivery' ? customerPhone : '',
+            totalAmount: total,
+            orderId: res.data._id
+          }, storeConfig);
+        }
+      }
 
       setCart([]);
       setOrderType('Dine-in');
@@ -418,7 +541,7 @@ const POS = () => {
       setShowCheckoutModal(false);
       setCashReceived('');
       setCurrentOrderId(generateMongoObjectId());
-      showAlert('Sale saved and receipt printed silently!', 'Success', 'success');
+      showAlert('Sale saved and receipt printed successfully!', 'Success', 'success');
     } catch (err) {
       console.error(err);
       showAlert('Error during checkout or printing. Check connection.', 'Error', 'error');
