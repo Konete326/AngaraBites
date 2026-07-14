@@ -146,7 +146,7 @@ const styles = {
     flex: 1,
     marginLeft: '280px',
     padding: '1rem 2rem',
-    transition: 'margin-left 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
+    transition: 'margin-left 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
     minWidth: 0,
   },
   header: {

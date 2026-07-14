@@ -109,7 +109,7 @@ const styles = {
     position: 'fixed',
     left: 0,
     top: 0,
-    transition: 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
+    transition: 'transform 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
   },
   logoContainer: {
     display: 'flex',
