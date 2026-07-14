@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Component } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -14,6 +14,49 @@ import Settings from './pages/Settings';
 import { Agentation } from 'agentation';
 import { DataProvider } from './context/DataContext';
 
+class ErrorBoundary extends Component {
+  state = { hasError: false };
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("ErrorBoundary caught an error:", error, errorInfo);
+    const errorText = error.toString().toLowerCase();
+    const isChunkError = errorText.includes('chunk') || 
+                         errorText.includes('failed to fetch') ||
+                         errorText.includes('loading chunk') ||
+                         errorText.includes('dynamically imported');
+
+    if (isChunkError) {
+      console.warn("Chunk load error detected! Triggering auto-reload...");
+      window.location.reload();
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#0a0a0a', color: '#ffffff', padding: '2rem', textAlign: 'center', fontFamily: 'sans-serif' }}>
+          <h2 style={{ color: 'var(--primary-yellow)', marginBottom: '1rem', fontWeight: '800' }}>System Update / Error</h2>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', maxWidth: '400px', fontSize: '0.9rem', lineHeight: '1.5' }}>
+            The application has updated or encountered a loading error. Please reload to load the latest version.
+          </p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="btn-primary" 
+            style={{ padding: '0.8rem 1.5rem', fontWeight: 'bold' }}
+          >
+            Reload Page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // Simple Protected Route
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -23,8 +66,9 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
   return (
-    <DataProvider>
-      <Router>
+    <ErrorBoundary>
+      <DataProvider>
+        <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route 
@@ -112,6 +156,7 @@ function App() {
         )}
       </Router>
     </DataProvider>
+    </ErrorBoundary>
   );
 }
 
