@@ -4,11 +4,13 @@ import { X, AlertTriangle } from 'lucide-react';
 
 const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Confirm', cancelText = 'Cancel', disabled = false }) => {
   const [loading, setLoading] = React.useState(false);
+  const isSubmittingRef = React.useRef(false);
 
   if (!isOpen) return null;
 
   const handleConfirmClick = async () => {
-    if (disabled || loading) return;
+    if (disabled || loading || isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setLoading(true);
     try {
       const res = onConfirm();
@@ -19,6 +21,7 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText 
     } catch (err) {
       console.error(err);
     } finally {
+      isSubmittingRef.current = false;
       setLoading(false);
     }
   };
