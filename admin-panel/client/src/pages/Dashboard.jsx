@@ -19,6 +19,10 @@ const Dashboard = () => {
     netCash: 0
   });
   const [recentSales, setRecentSales] = useState([]);
+  const [analyticsData, setAnalyticsData] = useState({
+    daysData: [],
+    topItems: []
+  });
 
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [expenseAmount, setExpenseAmount] = useState('');
@@ -30,14 +34,18 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const [summaryRes, salesRes] = await Promise.all([
+      const [summaryRes, salesRes, analyticsRes] = await Promise.all([
         axios.get(getApiUrl('/api/dashboard/today')),
-        axios.get(getApiUrl('/api/sales?limit=5'))
+        axios.get(getApiUrl('/api/sales?limit=5')),
+        axios.get(getApiUrl('/api/dashboard/analytics'))
       ]);
       const summary = summaryRes.data || { totalSales: 0, totalExpenses: 0, netCash: 0 };
       setBusinessSummary(summary);
       const sales = Array.isArray(salesRes.data) ? salesRes.data : [];
       setRecentSales(sales);
+      if (analyticsRes.data) {
+        setAnalyticsData(analyticsRes.data);
+      }
       setLoading(false);
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
@@ -144,6 +152,167 @@ const Dashboard = () => {
                 </div>
               </div>
             ))}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+            <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+              <h3 style={{ fontSize: '1.1rem', color: 'var(--text-main)', margin: '0 0 1.5rem 0', fontWeight: '800' }}>
+                Sales vs Expenses (Last 7 Days)
+              </h3>
+              <div style={{ position: 'relative', width: '100%', flex: 1, minHeight: '200px' }}>
+                {analyticsData.daysData && analyticsData.daysData.length > 0 ? (
+                  (() => {
+                    const maxVal = Math.max(...analyticsData.daysData.map(d => Math.max(d.sales, d.expenses)), 1000);
+                    const width = 500;
+                    const height = 200;
+                    const paddingX = 40;
+                    const paddingY = 25;
+                    
+                    const getSvgPoints = (key) => {
+                      return analyticsData.daysData.map((d, i) => {
+                        const x = paddingX + (i / (analyticsData.daysData.length - 1)) * (width - 2 * paddingX);
+                        const y = height - paddingY - (d[key] / maxVal) * (height - 2 * paddingY);
+                        return `${x},${y}`;
+                      }).join(' ');
+                    };
+
+                    const getSvgAreaPoints = (key) => {
+                      const points = getSvgPoints(key);
+                      const bottom = height - paddingY;
+                      return `${paddingX},${bottom} ${points} ${width - paddingX},${bottom}`;
+                    };
+
+                    return (
+                      <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: '100%', overflow: 'visible' }}>
+                        <defs>
+                          <linearGradient id="salesAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="var(--primary-yellow)" stopOpacity="0.3" />
+                            <stop offset="100%" stopColor="var(--primary-yellow)" stopOpacity="0" />
+                          </linearGradient>
+                          <linearGradient id="expensesAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="var(--accent-red)" stopOpacity="0.3" />
+                            <stop offset="100%" stopColor="var(--accent-red)" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+
+                        {[0, 0.25, 0.5, 0.75, 1].map((ratio, index) => {
+                          const y = height - paddingY - ratio * (height - 2 * paddingY);
+                          const val = Math.round(ratio * maxVal);
+                          return (
+                            <g key={index}>
+                              <line 
+                                x1={paddingX} 
+                                y1={y} 
+                                x2={width - paddingX} 
+                                y2={y} 
+                                stroke="var(--glass-border)" 
+                                strokeDasharray="3 3" 
+                              />
+                              <text 
+                                x={paddingX - 10} 
+                                y={y + 4} 
+                                fill="var(--text-muted)" 
+                                fontSize="10" 
+                                textAnchor="end"
+                              >
+                                {val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val}
+                              </text>
+                            </g>
+                          );
+                        })}
+
+                        {analyticsData.daysData.map((d, i) => {
+                          const x = paddingX + (i / (analyticsData.daysData.length - 1)) * (width - 2 * paddingX);
+                          return (
+                            <text 
+                              key={i} 
+                              x={x} 
+                              y={height - 5} 
+                              fill="var(--text-muted)" 
+                              fontSize="10" 
+                              textAnchor="middle"
+                            >
+                              {d.label}
+                            </text>
+                          );
+                        })}
+
+                        <polygon points={getSvgAreaPoints('sales')} fill="url(#salesAreaGrad)" />
+                        <polygon points={getSvgAreaPoints('expenses')} fill="url(#expensesAreaGrad)" />
+
+                        <polyline points={getSvgPoints('sales')} fill="none" stroke="var(--primary-yellow)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                        <polyline points={getSvgPoints('expenses')} fill="none" stroke="var(--accent-red)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+
+                        {analyticsData.daysData.map((d, i) => {
+                          const x = paddingX + (i / (analyticsData.daysData.length - 1)) * (width - 2 * paddingX);
+                          const ySales = height - paddingY - (d.sales / maxVal) * (height - 2 * paddingY);
+                          const yExpenses = height - paddingY - (d.expenses / maxVal) * (height - 2 * paddingY);
+                          return (
+                            <g key={i}>
+                              <circle cx={x} cy={ySales} r="4" fill="#000" stroke="var(--primary-yellow)" strokeWidth="2.5" />
+                              <circle cx={x} cy={yExpenses} r="4" fill="#000" stroke="var(--accent-red)" strokeWidth="2.5" />
+                            </g>
+                          );
+                        })}
+                      </svg>
+                    );
+                  })()
+                ) : (
+                  <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                    No chart data available
+                  </div>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', marginTop: '1rem', fontSize: '0.85rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <div style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: 'var(--primary-yellow)' }} />
+                  <span style={{ color: 'var(--text-main)', fontWeight: '600' }}>Sales</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <div style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: 'var(--accent-red)' }} />
+                  <span style={{ color: 'var(--text-main)', fontWeight: '600' }}>Expenses</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+              <h3 style={{ fontSize: '1.1rem', color: 'var(--text-main)', margin: '0 0 1.5rem 0', fontWeight: '800' }}>
+                Top Selling Products (Last 7 Days)
+              </h3>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem', justifyContent: 'center' }}>
+                {analyticsData.topItems && analyticsData.topItems.length > 0 ? (
+                  (() => {
+                    const maxQty = Math.max(...analyticsData.topItems.map(item => item.quantity), 1);
+                    return analyticsData.topItems.map((item, idx) => {
+                      const percentage = (item.quantity / maxQty) * 100;
+                      return (
+                        <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: '600' }}>
+                            <span style={{ color: 'var(--text-main)' }}>{item.name}</span>
+                            <span style={{ color: 'var(--primary-yellow)' }}>{item.quantity} orders</span>
+                          </div>
+                          <div style={{ height: '10px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '99px', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
+                            <div 
+                              style={{ 
+                                height: '100%', 
+                                width: `${percentage}%`, 
+                                background: 'linear-gradient(90deg, var(--primary-yellow), #f59e0b)',
+                                borderRadius: '99px',
+                                transition: 'width 0.5s ease-in-out'
+                              }} 
+                            />
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()
+                ) : (
+                  <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                    No sales data available
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="glass-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>

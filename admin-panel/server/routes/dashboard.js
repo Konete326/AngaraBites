@@ -63,4 +63,74 @@ router.get('/db-stats', async (req, res) => {
     }
 });
 
+router.get('/analytics', async (req, res) => {
+    try {
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        sevenDaysAgo.setHours(0, 0, 0, 0);
+
+        const [sales, expenses] = await Promise.all([
+            Sale.find({ createdAt: { $gte: sevenDaysAgo } }).lean(),
+            Expense.find({ createdAt: { $gte: sevenDaysAgo } }).lean()
+        ]);
+
+        const daysData = [];
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dateStr = d.toLocaleDateString('en-US', { weekday: 'short' });
+            const dateKey = d.toDateString();
+            daysData.push({
+                dateLabel: dateStr,
+                dateKey: dateKey,
+                sales: 0,
+                expenses: 0
+            });
+        }
+
+        sales.forEach(sale => {
+            const saleDateKey = new Date(sale.createdAt).toDateString();
+            const dayObj = daysData.find(d => d.dateKey === saleDateKey);
+            if (dayObj) {
+                dayObj.sales += Number(sale.totalAmount) || 0;
+            }
+        });
+
+        expenses.forEach(expense => {
+            const expDateKey = new Date(expense.createdAt).toDateString();
+            const dayObj = daysData.find(d => d.dateKey === expDateKey);
+            if (dayObj) {
+                dayObj.expenses += Number(expense.amount) || 0;
+            }
+        });
+
+        const itemCounts = {};
+        sales.forEach(sale => {
+            if (Array.isArray(sale.items)) {
+                sale.items.forEach(saleItem => {
+                    const itemName = saleItem.name || 'Unknown Item';
+                    const qty = Number(saleItem.quantity) || 0;
+                    if (!itemCounts[itemName]) {
+                        itemCounts[itemName] = 0;
+                    }
+                    itemCounts[itemName] += qty;
+                });
+            }
+        });
+
+        const topItems = Object.entries(itemCounts)
+            .map(([name, quantity]) => ({ name, quantity }))
+            .sort((a, b) => b.quantity - a.quantity)
+            .slice(0, 5);
+
+        res.json({
+            daysData: daysData.map(d => ({ label: d.dateLabel, sales: d.sales, expenses: d.expenses })),
+            topItems
+        });
+    } catch (err) {
+        console.error('Error fetching dashboard analytics:', err);
+        res.status(500).json({ message: err.message });
+    }
+});
+
 module.exports = router;
