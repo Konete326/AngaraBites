@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Category = require('../models/Category');
+const Item = require('../models/Item');
 
 // Get all categories
 router.get('/', async (req, res) => {
@@ -32,6 +33,15 @@ router.put('/:id', async (req, res) => {
             req.body, 
             { new: true }
         );
+        if (updatedCategory && req.body.subCategories) {
+            await Item.updateMany(
+                { 
+                    category: req.params.id, 
+                    subCategory: { $nin: req.body.subCategories } 
+                },
+                { $set: { subCategory: null } }
+            );
+        }
         res.json(updatedCategory);
     } catch (err) {
         res.status(400).json({ message: err.message });
