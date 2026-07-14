@@ -13,6 +13,18 @@ import Settings from './pages/Settings';
 
 import { Agentation } from 'agentation';
 import { DataProvider } from './context/DataContext';
+import axios from 'axios';
+
+axios.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 class ErrorBoundary extends Component {
   state = { hasError: false };

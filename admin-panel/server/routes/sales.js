@@ -4,6 +4,7 @@ const Sale = require('../models/Sale');
 const Item = require('../models/Item');
 const Ingredient = require('../models/Ingredient');
 const Deal = require('../models/Deal');
+const auth = require('../middleware/auth');
 
 async function decrementItemStock(itemId, quantity) {
     const item = await Item.findById(itemId);
@@ -98,7 +99,7 @@ router.post('/', async (req, res) => {
 });
 
 // Delete all sales records
-router.delete('/', async (req, res) => {
+router.delete('/', auth, async (req, res) => {
     try {
         const result = await Sale.deleteMany({});
         res.json({ message: 'All sales records deleted successfully', deletedCount: result.deletedCount });
@@ -108,7 +109,7 @@ router.delete('/', async (req, res) => {
 });
 
 // Delete a single sale record
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
     try {
         const sale = await Sale.findByIdAndDelete(req.params.id);
         if (!sale) {
@@ -121,7 +122,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // Move today's sales records to yesterday (30 Jun)
-router.post('/move-today-to-yesterday', async (req, res) => {
+router.post('/move-today-to-yesterday', auth, async (req, res) => {
   try {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());

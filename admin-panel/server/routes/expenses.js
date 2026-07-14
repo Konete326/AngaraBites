@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Expense = require('../models/Expense');
+const auth = require('../middleware/auth');
 
 // Get all expenses
 router.get('/', async (req, res) => {
@@ -49,7 +50,7 @@ router.put('/:id', async (req, res) => {
     }
 });
 
-router.delete('/', async (req, res) => {
+router.delete('/', auth, async (req, res) => {
     try {
         const result = await Expense.deleteMany({});
         res.json({ message: 'All expenses records deleted successfully', deletedCount: result.deletedCount });
@@ -58,7 +59,7 @@ router.delete('/', async (req, res) => {
     }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
     try {
         const deletedExpense = await Expense.findByIdAndDelete(req.params.id);
         if (!deletedExpense) return res.status(404).json({ message: 'Expense not found' });
