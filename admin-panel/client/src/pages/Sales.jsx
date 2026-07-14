@@ -14,6 +14,7 @@ import {
   Trash2,
   Printer,
   Eye,
+  Download,
   X
 } from 'lucide-react';
 import { SkeletonTable } from '../components/Skeleton';
@@ -84,6 +85,12 @@ const Sales = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedSaleForModal, setSelectedSaleForModal] = useState(null);
   const [printerType, setPrinterType] = useState('auto');
+  
+  // Shift Report State
+  const [showShiftReportModal, setShowShiftReportModal] = useState(false);
+  const [reportDate, setReportDate] = useState(getBusinessDateStr);
+  const [reportData, setReportData] = useState(null);
+  const [loadingReport, setLoadingReport] = useState(false);
   const [storeConfig, setStoreConfig] = useState({});
 
 
@@ -406,9 +413,183 @@ const Sales = () => {
   }, [filteredTransactions, currentPage]);
   const totalTransactionPages = Math.ceil(filteredTransactions.length / itemsPerPage);
 
+  const handleGenerateReport = async () => {
+    setLoadingReport(true);
+    setReportData(null);
+    try {
+      const res = await axios.get(getApiUrl(`/api/sales/shift-report?date=${reportDate}`));
+      setReportData(res.data);
+    } catch (err) {
+      console.error('Error fetching shift report:', err);
+      alert('Error fetching shift report data.');
+    } finally {
+      setLoadingReport(false);
+    }
+  };
+
+  const handleExportCSV = (data) => {
+    if (!data) return;
+    const { date, summary, sales, expenses } = data;
+    
+    let csvString = '';
+    csvString += `ANGARA BITES - DAILY SHIFT REPORT\n`;
+    csvString += `Business Date,${date}\n`;
+    csvString += `Report Generated At,${new Date().toLocaleString('en-PK')}\n\n`;
+    
+    csvString += `FINANCIAL SUMMARY\n`;
+    csvString += `Total Sales,Rs. ${summary.totalSales.toLocaleString('en-PK')}\n`;
+    csvString += `Total Expenses,Rs. ${summary.totalExpenses.toLocaleString('en-PK')}\n`;
+    csvString += `Expected Net Cash in Drawer,Rs. ${summary.netCash.toLocaleString('en-PK')}\n\n`;
+    
+    csvString += `SALES TRANSACTIONS (${sales.length})\n`;
+    csvString += `Time,Order Type,Customer Name,Phone,Total Amount\n`;
+    sales.forEach(sale => {
+      const timeStr = new Date(sale.createdAt).toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', hour12: true });
+      csvString += `"${timeStr}","${sale.orderType}","${sale.customerName || '-'}","${sale.customerPhone || '-'}","${sale.totalAmount}"\n`;
+    });
+    csvString += `\n`;
+
+    csvString += `EXPENSES RECORDED (${expenses.length})\n`;
+    csvString += `Time,Description,Amount\n`;
+    expenses.forEach(exp => {
+      const timeStr = new Date(exp.createdAt).toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', hour12: true });
+      csvString += `"${timeStr}","${exp.description.replace(/"/g, '""')}","${exp.amount}"\n`;
+    });
+
+    const blob = new Blob(["\uFEFF" + csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `shift_report_${date}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handlePrintPDF = (data) => {
+    if (!data) return;
+    const { date, summary, sales, expenses } = data;
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert("Please allow popups to print/save report as PDF");
+      return;
+    }
+
+    const salesRows = sales.map(sale => {
+      const timeStr = new Date(sale.createdAt).toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', hour12: true });
+      return `
+        <tr>
+          <td>${timeStr}</td>
+          <td>${sale.orderType}</td>
+          <td>${sale.customerName || '-'}</td>
+          <td>${sale.customerPhone || '-'}</td>
+          <td style="text-align: right; font-weight: bold;">Rs. ${Number(sale.totalAmount).toLocaleString('en-PK')}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const expensesRows = expenses.map(exp => {
+      const timeStr = new Date(exp.createdAt).toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', hour12: true });
+      return `
+        <tr>
+          <td>${timeStr}</td>
+          <td>${exp.description}</td>
+          <td style="text-align: right; font-weight: bold; color: #ef4444;">Rs. ${Number(exp.amount).toLocaleString('en-PK')}</td>
+        </tr>
+      `;
+    }).join('');
+
+    let html = '';
+    html += '<html><head><title>Daily Shift Report - ' + date + '</title>';
+    html += '<style>';
+    html += 'body { font-family: "Helvetica Neue", Arial, sans-serif; color: #333; padding: 2rem; margin: 0; }';
+    html += '.header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 1.5rem; margin-bottom: 2rem; }';
+    html += '.header h1 { margin: 0; font-size: 2rem; letter-spacing: 1px; }';
+    html += '.header p { margin: 0.5rem 0 0 0; color: #666; font-size: 0.9rem; }';
+    html += '.summary-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2.5rem; }';
+    html += '.card { border: 1px solid #ddd; padding: 1rem; border-radius: 8px; background-color: #fcfcfc; }';
+    html += '.card-title { font-size: 0.8rem; color: #666; text-transform: uppercase; font-weight: bold; margin-bottom: 0.5rem; }';
+    html += '.card-val { font-size: 1.5rem; font-weight: 800; }';
+    html += 'h2 { font-size: 1.2rem; border-bottom: 1px solid #ddd; padding-bottom: 0.5rem; margin-top: 2rem; margin-bottom: 1rem; }';
+    html += 'table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }';
+    html += 'th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #eee; font-size: 0.9rem; }';
+    html += 'th { background-color: #f5f5f5; font-weight: bold; }';
+    html += '.signatures { display: flex; justify-content: space-between; margin-top: 5rem; padding-top: 2rem; }';
+    html += '.sig-line { width: 200px; border-top: 1px solid #333; text-align: center; font-size: 0.85rem; color: #666; padding-top: 0.5rem; }';
+    html += '@media print { body { padding: 1cm; } .no-print { display: none; } }';
+    html += '</style></head><body>';
+
+    html += '<div class="header">';
+    html += '  <h1>ANGARA BITES</h1>';
+    html += '  <p>DAILY BUSINESS SHIFT REPORT</p>';
+    html += '  <p style="font-weight: bold; font-size: 1.1rem; margin-top: 0.4rem;">Business Date: ' + date + '</p>';
+    html += '  <p style="font-size: 0.8rem; color: #888;">Generated At: ' + new Date().toLocaleString('en-PK') + '</p>';
+    html += '</div>';
+
+    html += '<div class="summary-cards">';
+    html += '  <div class="card">';
+    html += '    <div class="card-title">Total Sales</div>';
+    html += '    <div class="card-val" style="color: #22c55e;">Rs. ' + summary.totalSales.toLocaleString('en-PK') + '</div>';
+    html += '  </div>';
+    html += '  <div class="card">';
+    html += '    <div class="card-title">Total Expenses</div>';
+    html += '    <div class="card-val" style="color: #ef4444;">Rs. ' + summary.totalExpenses.toLocaleString('en-PK') + '</div>';
+    html += '  </div>';
+    html += '  <div class="card">';
+    html += '    <div class="card-title">Net Cash in Drawer</div>';
+    html += '    <div class="card-val" style="color: #f59e0b;">Rs. ' + summary.netCash.toLocaleString('en-PK') + '</div>';
+    html += '  </div>';
+    html += '</div>';
+
+    html += '<h2>Sales Transactions (' + sales.length + ')</h2>';
+    if (sales.length > 0) {
+      html += '<table><thead><tr><th>Time</th><th>Order Type</th><th>Customer Name</th><th>Phone</th><th style="text-align: right;">Total Amount</th></tr></thead><tbody>' + salesRows + '</tbody></table>';
+    } else {
+      html += '<p style="color: #888; font-size: 0.9rem;">No sales recorded for this date.</p>';
+    }
+
+    html += '<h2>Expenses Recorded (' + expenses.length + ')</h2>';
+    if (expenses.length > 0) {
+      html += '<table><thead><tr><th>Time</th><th>Description</th><th style="text-align: right;">Amount</th></tr></thead><tbody>' + expensesRows + '</tbody></table>';
+    } else {
+      html += '<p style="color: #888; font-size: 0.9rem;">No expenses recorded for this date.</p>';
+    }
+
+    html += '<div class="signatures">';
+    html += '  <div class="sig-line">Manager Signature</div>';
+    html += '  <div class="sig-line">Owner Signature</div>';
+    html += '</div>';
+    html += '</body></html>';
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 500);
+  };
+
   return (
     <Layout>
       <div style={styles.container}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: '800', color: 'var(--text-main)', margin: 0 }}>Sales Record</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0.1rem 0 0 0' }}>Analyze shift summaries and business sales.</p>
+          </div>
+          <button 
+            onClick={() => {
+              setReportDate(getBusinessDateStr());
+              setReportData(null);
+              setShowShiftReportModal(true);
+            }} 
+            className="btn-primary" 
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '10px', fontWeight: 'bold' }}
+          >
+            <Printer size={16} /> Day-End Shift Report
+          </button>
+        </div>
         {/* Compact Actions & Filters */}
         <div style={styles.filterSection} className="glass-card">
           <div style={styles.filtersRow}>
@@ -894,6 +1075,93 @@ const Sales = () => {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showShiftReportModal && (
+        <div style={styles.modalOverlay}>
+          <div style={{ ...styles.modalCard, maxWidth: '500px', width: '90%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ margin: 0, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '800' }}>
+                <Printer size={20} color="var(--primary-yellow)" /> Day-End Shift Report
+              </h3>
+              <button 
+                onClick={() => setShowShiftReportModal(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '600' }}>Select Business Date</label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input 
+                    type="date" 
+                    value={reportDate} 
+                    onChange={(e) => setReportDate(e.target.value)} 
+                    style={{ ...styles.compactInput, flex: 1, height: '40px' }}
+                  />
+                  <button 
+                    onClick={handleGenerateReport}
+                    disabled={loadingReport}
+                    className="btn-primary"
+                    style={{ padding: '0 1.2rem', height: '40px', fontWeight: 'bold' }}
+                  >
+                    {loadingReport ? 'Loading...' : 'Generate'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {reportData && (
+              <div style={{ animation: 'fadeIn 0.2s ease-out' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                  <div style={{ padding: '0.75rem', backgroundColor: 'rgba(74, 222, 128, 0.05)', borderRadius: '8px', border: '1px solid rgba(74, 222, 128, 0.1)', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Total Sales</div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: '800', color: '#4ade80' }}>Rs. {reportData.summary.totalSales.toLocaleString()}</div>
+                  </div>
+                  <div style={{ padding: '0.75rem', backgroundColor: 'rgba(239, 68, 68, 0.05)', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.1)', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Expenses</div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: '800', color: '#ef4444' }}>Rs. {reportData.summary.totalExpenses.toLocaleString()}</div>
+                  </div>
+                  <div style={{ padding: '0.75rem', backgroundColor: 'rgba(250, 204, 21, 0.1)', borderRadius: '8px', border: '1px solid rgba(250, 204, 21, 0.2)', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-main)', marginBottom: '0.2rem', fontWeight: 'bold' }}>Net Cash</div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: '800', color: 'var(--primary-yellow)' }}>Rs. {reportData.summary.netCash.toLocaleString()}</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.7rem 1rem', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--glass-border)', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Sales Transactions:</span>
+                    <strong style={{ color: 'var(--text-main)' }}>{reportData.sales.length} orders</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Expenses Count:</span>
+                    <strong style={{ color: 'var(--text-main)' }}>{reportData.expenses.length} entries</strong>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button 
+                    onClick={() => handleExportCSV(reportData)}
+                    className="btn-secondary"
+                    style={{ flex: 1, padding: '0.65rem 0', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                  >
+                    <Download size={16} /> Export Excel
+                  </button>
+                  <button 
+                    onClick={() => handlePrintPDF(reportData)}
+                    className="btn-primary"
+                    style={{ flex: 1, padding: '0.65rem 0', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                  >
+                    <Printer size={16} /> Print / Save PDF
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

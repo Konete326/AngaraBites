@@ -4,6 +4,7 @@ const Sale = require('../models/Sale');
 const Item = require('../models/Item');
 const Ingredient = require('../models/Ingredient');
 const Deal = require('../models/Deal');
+const Expense = require('../models/Expense');
 const auth = require('../middleware/auth');
 
 async function decrementItemStock(itemId, quantity) {
@@ -76,6 +77,42 @@ router.get('/', async (req, res) => {
         const sales = await query;
         res.json(sales);
     } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+router.get('/shift-report', async (req, res) => {
+    try {
+        const { date } = req.query;
+        if (!date) {
+            return res.status(400).json({ message: 'Date parameter is required' });
+        }
+
+        const targetDate = new Date(date);
+        const startOfBusinessDay = new Date(Date.UTC(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 12, 0, 0, 0));
+        const endOfBusinessDay = new Date(startOfBusinessDay.getTime() + 86400000);
+
+        const [sales, expenses] = await Promise.all([
+            Sale.find({ createdAt: { $gte: startOfBusinessDay, $lt: endOfBusinessDay } }).lean(),
+            Expense.find({ createdAt: { $gte: startOfBusinessDay, $lt: endOfBusinessDay } }).lean()
+        ]);
+
+        const totalSales = sales.reduce((sum, sale) => sum + (Number(sale.totalAmount) || 0), 0);
+        const totalExpenses = expenses.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0);
+        const netCash = totalSales - totalExpenses;
+
+        res.json({
+            date,
+            summary: {
+                totalSales,
+                totalExpenses,
+                netCash
+            },
+            sales,
+            expenses
+        });
+    } catch (err) {
+        console.error('Error generating shift report data:', err);
         res.status(500).json({ message: err.message });
     }
 });
