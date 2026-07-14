@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Item = require('../models/Item');
+const Deal = require('../models/Deal');
 const { upload, uploadToCloudinary } = require('../middleware/cloudinary');
 
 // Get all items (with pagination and search)
@@ -181,6 +182,13 @@ router.put('/:id', upload.single('image'), async (req, res) => {
 router.delete('/:id', async (req, res) => {
     try {
         console.log(`DELETE /api/items/${req.params.id} request received`);
+        const linkedDeals = await Deal.find({ 'items.item': req.params.id });
+        if (linkedDeals.length > 0) {
+            return res.status(400).json({ 
+                message: 'Cannot delete item because it is part of active deals: ' + 
+                         linkedDeals.map(d => d.name).join(', ') 
+            });
+        }
         const deleted = await Item.findByIdAndDelete(req.params.id);
         console.log('Deleted item document:', deleted);
         res.json({ message: 'Item deleted' });
