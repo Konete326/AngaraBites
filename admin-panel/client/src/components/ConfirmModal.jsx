@@ -3,10 +3,13 @@ import { createPortal } from 'react-dom';
 import { X, AlertTriangle } from 'lucide-react';
 
 const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Confirm', cancelText = 'Cancel', disabled = false }) => {
+  const [loading, setLoading] = React.useState(false);
+
   if (!isOpen) return null;
 
   const handleConfirmClick = async () => {
-    if (disabled) return;
+    if (disabled || loading) return;
+    setLoading(true);
     try {
       const res = onConfirm();
       if (res instanceof Promise) {
@@ -15,8 +18,12 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText 
       onClose();
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
+
+  const isBtnDisabled = disabled || loading;
 
   return createPortal(
     <div style={styles.modalOverlay}>
@@ -28,7 +35,7 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText 
               {title || 'Confirm Action'}
             </h3>
           </div>
-          <button onClick={onClose} disabled={disabled} style={{ ...styles.closeBtn, cursor: disabled ? 'not-allowed' : 'pointer' }}>
+          <button onClick={onClose} disabled={isBtnDisabled} style={{ ...styles.closeBtn, cursor: isBtnDisabled ? 'not-allowed' : 'pointer' }}>
             <X size={20} />
           </button>
         </div>
@@ -41,12 +48,12 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText 
 
         <div style={styles.modalFooter}>
           {cancelText && (
-            <button onClick={onClose} disabled={disabled} style={{ ...styles.cancelBtn, opacity: disabled ? 0.6 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}>
+            <button onClick={onClose} disabled={isBtnDisabled} style={{ ...styles.cancelBtn, opacity: isBtnDisabled ? 0.6 : 1, cursor: isBtnDisabled ? 'not-allowed' : 'pointer' }}>
               {cancelText}
             </button>
           )}
-          <button onClick={handleConfirmClick} disabled={disabled} style={{ ...styles.confirmBtn, opacity: disabled ? 0.6 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}>
-            {disabled ? 'Loading...' : confirmText}
+          <button onClick={handleConfirmClick} disabled={isBtnDisabled} style={{ ...styles.confirmBtn, opacity: isBtnDisabled ? 0.6 : 1, cursor: isBtnDisabled ? 'not-allowed' : 'pointer' }}>
+            {isBtnDisabled ? 'Loading...' : confirmText}
           </button>
         </div>
       </div>
