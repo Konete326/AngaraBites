@@ -22,8 +22,13 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ message: 'Amount and description are required' });
         }
 
+        const numericAmount = Number(amount);
+        if (isNaN(numericAmount) || numericAmount <= 0) {
+            return res.status(400).json({ message: 'Amount must be a valid positive number' });
+        }
+
         const expense = new Expense({
-            amount: Number(amount),
+            amount: numericAmount,
             description
         });
 
@@ -38,9 +43,15 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const { amount, description } = req.body;
+        
+        const numericAmount = Number(amount);
+        if (isNaN(numericAmount) || numericAmount <= 0) {
+            return res.status(400).json({ message: 'Amount must be a valid positive number' });
+        }
+
         const updatedExpense = await Expense.findByIdAndUpdate(
             req.params.id,
-            { amount: Number(amount), description },
+            { amount: numericAmount, description },
             { new: true }
         );
         if (!updatedExpense) return res.status(404).json({ message: 'Expense not found' });

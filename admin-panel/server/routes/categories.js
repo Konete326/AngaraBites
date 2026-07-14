@@ -17,7 +17,17 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
     const { name, subCategories } = req.body;
     try {
-        const newCategory = new Category({ name, subCategories });
+        if (!name || !name.trim()) {
+            return res.status(400).json({ message: 'Category name is required' });
+        }
+        const cleanName = name.trim();
+        const existingCategory = await Category.findOne({
+            name: { $regex: new RegExp(`^${cleanName}$`, 'i') }
+        });
+        if (existingCategory) {
+            return res.status(400).json({ message: 'Category with this name already exists' });
+        }
+        const newCategory = new Category({ name: cleanName, subCategories });
         await newCategory.save();
         res.json(newCategory);
     } catch (err) {
@@ -29,9 +39,20 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const { name, subCategories, subCategoryMappings } = req.body;
+        if (!name || !name.trim()) {
+            return res.status(400).json({ message: 'Category name is required' });
+        }
+        const cleanName = name.trim();
+        const existingCategory = await Category.findOne({
+            _id: { $ne: req.params.id },
+            name: { $regex: new RegExp(`^${cleanName}$`, 'i') }
+        });
+        if (existingCategory) {
+            return res.status(400).json({ message: 'Category with this name already exists' });
+        }
         const updatedCategory = await Category.findByIdAndUpdate(
             req.params.id, 
-            { name, subCategories }, 
+            { name: cleanName, subCategories }, 
             { new: true }
         );
         if (updatedCategory && subCategories) {
