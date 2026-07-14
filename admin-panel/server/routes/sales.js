@@ -36,6 +36,36 @@ async function decrementItemStock(itemId, quantity) {
     await Promise.all(updates);
 }
 
+async function restoreItemStock(itemId, quantity) {
+    const item = await Item.findById(itemId);
+    if (!item) return;
+
+    const updates = [];
+
+    if (item.trackDirectStock) {
+        item.stockQuantity = (item.stockQuantity || 0) + quantity;
+        if (item.stockQuantity > 0) {
+            item.isAvailable = true;
+        }
+        updates.push(item.save());
+    }
+
+    if (item.recipe && item.recipe.length > 0) {
+        for (const element of item.recipe) {
+            updates.push((async () => {
+                const ingredient = await Ingredient.findById(element.ingredientId);
+                if (ingredient) {
+                    const requiredAmt = element.quantityRequired * quantity;
+                    ingredient.stockQuantity = (ingredient.stockQuantity || 0) + requiredAmt;
+                    await ingredient.save();
+                }
+            })());
+        }
+    }
+
+    await Promise.all(updates);
+}
+
 router.get('/', async (req, res) => {
     try {
         const limit = parseInt(req.query.limit, 10);
@@ -111,11 +141,34 @@ router.delete('/', auth, async (req, res) => {
 // Delete a single sale record
 router.delete('/:id', auth, async (req, res) => {
     try {
-        const sale = await Sale.findByIdAndDelete(req.params.id);
+        const sale = await Sale.findById(req.params.id);
         if (!sale) {
             return res.status(404).json({ message: 'Sale record not found' });
         }
-        res.json({ message: 'Sale record deleted successfully' });
+
+        const stockPromises = [];
+        const dealIds = sale.items.filter(i => i.type === 'deal').map(i => i.itemId);
+        const deals = await Promise.all(dealIds.map(id => Deal.findById(id)));
+        const dealMap = new Map(deals.filter(Boolean).map(d => [d._id.toString(), d]));
+
+        for (const saleItem of sale.items) {
+            if (saleItem.type === 'item') {
+                stockPromises.push(restoreItemStock(saleItem.itemId, saleItem.quantity));
+            } else if (saleItem.type === 'deal') {
+                const deal = dealMap.get(saleItem.itemId.toString());
+                if (deal) {
+                    for (const di of deal.items) {
+                        const totalQty = di.quantity * saleItem.quantity;
+                        stockPromises.push(restoreItemStock(di.item, totalQty));
+                    }
+                }
+            }
+        }
+
+        await Promise.all(stockPromises);
+
+        await Sale.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Sale record deleted and stock restored successfully' });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
