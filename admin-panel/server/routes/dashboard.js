@@ -32,12 +32,10 @@ router.get('/today', async (req, res) => {
             }
         }
 
-        // Fetch current business day's sales
-        const todaySales = await Sale.find({ createdAt: { $gte: startOfBusinessDay } });
+        const todaySales = await Sale.find({ createdAt: { $gte: startOfBusinessDay } }).lean();
         const totalSales = todaySales.reduce((sum, sale) => sum + (Number(sale.totalAmount) || 0), 0);
 
-        // Fetch current business day's expenses
-        const todayExpenses = await Expense.find({ createdAt: { $gte: startOfBusinessDay } });
+        const todayExpenses = await Expense.find({ createdAt: { $gte: startOfBusinessDay } }).lean();
         const totalExpenses = todayExpenses.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
 
         const netCash = totalSales - totalExpenses;

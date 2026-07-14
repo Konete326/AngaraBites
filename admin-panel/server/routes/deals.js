@@ -6,7 +6,7 @@ const { upload, uploadToCloudinary } = require('../middleware/cloudinary');
 // Get all deals
 router.get('/', async (req, res) => {
     try {
-        const deals = await Deal.find().populate('items.item');
+        const deals = await Deal.find().populate('items.item').lean();
         res.json(deals);
     } catch (err) {
         res.status(500).json({ message: err.message });

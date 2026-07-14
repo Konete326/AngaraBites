@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
             }
         }
 
-        const itemsQuery = Item.find(query).populate('category').sort({ createdAt: -1 });
+        const itemsQuery = Item.find(query).populate('category').sort({ createdAt: -1 }).lean();
         
         let items;
         let total = 0;

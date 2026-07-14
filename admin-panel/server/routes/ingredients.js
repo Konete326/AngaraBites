@@ -4,7 +4,7 @@ const Ingredient = require('../models/Ingredient');
 
 router.get('/', async (req, res) => {
     try {
-        const ingredients = await Ingredient.find().sort({ name: 1 });
+        const ingredients = await Ingredient.find().sort({ name: 1 }).lean();
         res.json(ingredients);
     } catch (err) {
         res.status(500).json({ message: err.message });

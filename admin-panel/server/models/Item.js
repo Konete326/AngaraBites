@@ -82,4 +82,6 @@ const ItemSchema = new mongoose.Schema({
     }
 });
 
+ItemSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Item', ItemSchema);
