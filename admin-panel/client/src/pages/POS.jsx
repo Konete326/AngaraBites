@@ -498,41 +498,12 @@ const POS = () => {
         customerPhone: orderType === 'Delivery' ? customerPhone : ''
       });
 
-      const isBrowserPrint = printerType === 'browser' || window.location.hostname.includes('vercel.app');
-
-      if (isBrowserPrint) {
-        triggerBrowserPrint({
-          type: 'CUSTOMER_RECEIPT',
-          items: cart,
-          orderType,
-          customerName,
-          customerPhone: orderType === 'Delivery' ? customerPhone : '',
-          totalAmount: total,
-          orderId: res.data._id
-        }, storeConfig);
-      } else {
-        const printRes = await axios.post(getApiUrl('/api/print'), {
-          type: 'CUSTOMER_RECEIPT',
-          items: cart,
-          orderType,
-          customerName,
-          customerPhone: orderType === 'Delivery' ? customerPhone : '',
-          totalAmount: total,
-          orderId: res.data._id
-        });
-
-        if (printRes.data && printRes.data.message && printRes.data.message.includes('Simulated print')) {
-          triggerBrowserPrint({
-            type: 'CUSTOMER_RECEIPT',
-            items: cart,
-            orderType,
-            customerName,
-            customerPhone: orderType === 'Delivery' ? customerPhone : '',
-            totalAmount: total,
-            orderId: res.data._id
-          }, storeConfig);
-        }
-      }
+      const finalCart = [...cart];
+      const finalOrderId = res.data._id;
+      const finalOrderType = orderType;
+      const finalCustomerName = customerName;
+      const finalCustomerPhone = customerPhone;
+      const finalTotal = total;
 
       setCart([]);
       setOrderType('Dine-in');
@@ -542,6 +513,48 @@ const POS = () => {
       setCashReceived('');
       setCurrentOrderId(generateMongoObjectId());
       showAlert('Sale saved and receipt printed successfully!', 'Success', 'success');
+
+      (async () => {
+        try {
+          const isBrowserPrint = printerType === 'browser' || window.location.hostname.includes('vercel.app');
+
+          if (isBrowserPrint) {
+            triggerBrowserPrint({
+              type: 'CUSTOMER_RECEIPT',
+              items: finalCart,
+              orderType: finalOrderType,
+              customerName: finalCustomerName,
+              customerPhone: finalOrderType === 'Delivery' ? finalCustomerPhone : '',
+              totalAmount: finalTotal,
+              orderId: finalOrderId
+            }, storeConfig);
+          } else {
+            const printRes = await axios.post(getApiUrl('/api/print'), {
+              type: 'CUSTOMER_RECEIPT',
+              items: finalCart,
+              orderType: finalOrderType,
+              customerName: finalCustomerName,
+              customerPhone: finalOrderType === 'Delivery' ? finalCustomerPhone : '',
+              totalAmount: finalTotal,
+              orderId: finalOrderId
+            });
+
+            if (printRes.data && printRes.data.message && printRes.data.message.includes('Simulated print')) {
+              triggerBrowserPrint({
+                type: 'CUSTOMER_RECEIPT',
+                items: finalCart,
+                orderType: finalOrderType,
+                customerName: finalCustomerName,
+                customerPhone: finalOrderType === 'Delivery' ? finalCustomerPhone : '',
+                totalAmount: finalTotal,
+                orderId: finalOrderId
+              }, storeConfig);
+            }
+          }
+        } catch (printErr) {
+          console.error('Background printing error:', printErr);
+        }
+      })();
     } catch (err) {
       console.error(err);
       showAlert('Error during checkout or printing. Check connection.', 'Error', 'error');
