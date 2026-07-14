@@ -38,7 +38,7 @@ async function decrementItemStock(itemId, quantity) {
 router.get('/', async (req, res) => {
     try {
         const limit = parseInt(req.query.limit, 10);
-        const query = Sale.find().sort({ createdAt: -1 });
+        const query = Sale.find().sort({ createdAt: -1 }).lean();
         if (limit > 0) {
             query.limit(limit);
         }

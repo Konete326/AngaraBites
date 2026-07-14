@@ -53,4 +53,6 @@ const SaleSchema = new mongoose.Schema({
     }
 });
 
+SaleSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Sale', SaleSchema);

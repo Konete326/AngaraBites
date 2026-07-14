@@ -109,14 +109,15 @@ const Sales = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const salesRes = await axios.get(getApiUrl('/api/sales'));
+      const [salesRes, statusRes, storeRes] = await Promise.all([
+        axios.get(getApiUrl('/api/sales')),
+        axios.get(getApiUrl('/api/print/status')),
+        axios.get(getApiUrl('/api/print/store-config'))
+      ]);
       setSales(salesRes.data);
-
-      const statusRes = await axios.get(getApiUrl('/api/print/status'));
       if (statusRes.data && statusRes.data.type) {
         setPrinterType(statusRes.data.type);
       }
-      const storeRes = await axios.get(getApiUrl('/api/print/store-config'));
       if (storeRes.data) {
         setStoreConfig(storeRes.data);
       }
