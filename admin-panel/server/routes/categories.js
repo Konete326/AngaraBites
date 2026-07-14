@@ -28,16 +28,27 @@ router.post('/', async (req, res) => {
 // Update a category
 router.put('/:id', async (req, res) => {
     try {
+        const { name, subCategories, subCategoryMappings } = req.body;
         const updatedCategory = await Category.findByIdAndUpdate(
             req.params.id, 
-            req.body, 
+            { name, subCategories }, 
             { new: true }
         );
-        if (updatedCategory && req.body.subCategories) {
+        if (updatedCategory && subCategories) {
+            if (subCategoryMappings && typeof subCategoryMappings === 'object') {
+                for (const [oldSub, newSub] of Object.entries(subCategoryMappings)) {
+                    if (newSub) {
+                        await Item.updateMany(
+                            { category: req.params.id, subCategory: oldSub },
+                            { $set: { subCategory: newSub } }
+                        );
+                    }
+                }
+            }
             await Item.updateMany(
                 { 
                     category: req.params.id, 
-                    subCategory: { $nin: req.body.subCategories } 
+                    subCategory: { $nin: subCategories } 
                 },
                 { $set: { subCategory: null } }
             );

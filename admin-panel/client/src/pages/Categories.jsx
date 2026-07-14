@@ -71,12 +71,13 @@ const CategoryFormModal = ({ onClose, onAdd, existingCategories = [] }) => {
 };
 
 const Categories = () => {
-  const { categories, isDataLoading, refreshData } = useData();
+  const { categories, items, isDataLoading, refreshData } = useData();
   const [isEditing, setIsEditing] = useState(null);
   const [editName, setEditName] = useState('');
   const [editSubCategories, setEditSubCategories] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
+  const [cascadeModalConfig, setCascadeModalConfig] = useState(null);
 
   // Fetching handled by DataContext
 
@@ -122,6 +123,29 @@ const Categories = () => {
     }
   };
 
+  const handleCascadeConfirm = async () => {
+    if (!cascadeModalConfig) return;
+    try {
+      const { categoryId, name, subCategories, mappings } = cascadeModalConfig;
+      const subCategoryMappings = {};
+      Object.entries(mappings).forEach(([oldSub, newSub]) => {
+        subCategoryMappings[oldSub] = newSub || null;
+      });
+
+      await axios.put(getApiUrl(`/api/categories/${categoryId}`), {
+        name,
+        subCategories,
+        subCategoryMappings
+      });
+
+      setCascadeModalConfig(null);
+      setIsEditing(null);
+      refreshData();
+    } catch (err) {
+      alert('Error updating category and subcategories mapping');
+    }
+  };
+
 
   const handleEdit = (category) => {
     setIsEditing(category._id);
@@ -132,6 +156,35 @@ const Categories = () => {
   const handleUpdate = async (id) => {
     try {
       const subCategories = editSubCategories.split(',').map(s => s.trim()).filter(s => s);
+      const oldCat = categories.find(c => c._id === id);
+      const oldSubCats = oldCat?.subCategories || [];
+      const removedSubCats = oldSubCats.filter(sub => !subCategories.includes(sub));
+
+      if (removedSubCats.length > 0) {
+        const affectedItems = (items || []).filter(item => 
+          item.category?._id === id && 
+          item.subCategory && 
+          removedSubCats.includes(item.subCategory)
+        );
+
+        if (affectedItems.length > 0) {
+          const initialMappings = {};
+          removedSubCats.forEach(sub => {
+            initialMappings[sub] = '';
+          });
+          setCascadeModalConfig({
+            isOpen: true,
+            categoryId: id,
+            name: editName,
+            subCategories,
+            removedSubCats,
+            affectedItems,
+            mappings: initialMappings
+          });
+          return;
+        }
+      }
+
       await axios.put(getApiUrl(`/api/categories/${id}`), {
         name: editName,
         subCategories
@@ -259,6 +312,73 @@ const Categories = () => {
         title="Delete Category"
         message="Are you sure you want to delete this category? This action cannot be undone."
       />
+
+      {cascadeModalConfig && (
+        <div style={styles.modalOverlay}>
+          <div style={{ ...styles.modal, maxWidth: '550px' }}>
+            <div style={styles.modalHeader}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--text-main)' }}>Subcategory Rename / Move</h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                  Please decide how to map products belonging to the removed/renamed subcategories:
+                </p>
+              </div>
+              <button onClick={() => setCascadeModalConfig(null)} style={styles.closeBtn} className="hover-scale">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div style={{ maxHeight: '350px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '1.5rem', paddingRight: '0.5rem' }}>
+              {cascadeModalConfig.removedSubCats.map((oldSub, idx) => {
+                const affected = cascadeModalConfig.affectedItems.filter(item => item.subCategory === oldSub);
+                if (affected.length === 0) return null;
+
+                return (
+                  <div key={idx} style={{ padding: '1rem', border: '1px solid var(--glass-border)', borderRadius: '12px', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                    <div style={{ fontWeight: '700', fontSize: '0.95rem', color: 'var(--primary-yellow)', marginBottom: '0.5rem' }}>
+                      Subcategory: "{oldSub}"
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.8rem' }}>
+                      Affected Products: {affected.map(item => item.name).join(', ')}
+                    </div>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>Map to active subcategory:</label>
+                      <select
+                        value={cascadeModalConfig.mappings[oldSub] || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCascadeModalConfig(prev => ({
+                            ...prev,
+                            mappings: {
+                              ...prev.mappings,
+                              [oldSub]: val
+                            }
+                          }));
+                        }}
+                        style={styles.inlineInput}
+                      >
+                        <option value="">Set as Uncategorized</option>
+                        {cascadeModalConfig.subCategories.map((newSub, i) => (
+                          <option key={i} value={newSub}>Move to "{newSub}"</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={styles.formActions}>
+              <button onClick={() => setCascadeModalConfig(null)} style={styles.cancelBtn}>
+                Cancel
+              </button>
+              <button onClick={handleCascadeConfirm} className="btn-primary" style={styles.submitBtn}>
+                Confirm and Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };
