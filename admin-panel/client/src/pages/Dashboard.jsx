@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { Spinner } from '../components/ui/spinner-1';
 import { Package, Tags, Gift, Activity, AlertTriangle } from 'lucide-react';
 import { useData } from '../context/DataContext';
-import { getApiUrl } from '../utils/api';
 
 const Dashboard = () => {
   const { items, categories, deals, ingredients, isDataLoading } = useData();
@@ -35,9 +34,9 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       const [summaryRes, salesRes, analyticsRes] = await Promise.all([
-        axios.get(getApiUrl('/api/dashboard/today')),
-        axios.get(getApiUrl('/api/sales?limit=5')),
-        axios.get(getApiUrl('/api/dashboard/analytics'))
+        api.get('/api/dashboard/today'),
+        api.get('/api/sales?limit=5'),
+        api.get('/api/dashboard/analytics')
       ]);
       const summary = summaryRes.data || { totalSales: 0, totalExpenses: 0, netCash: 0 };
       setBusinessSummary(summary);
@@ -68,7 +67,7 @@ const Dashboard = () => {
     }
 
     try {
-      await axios.post(getApiUrl('/api/expenses'), {
+      await api.post('/api/expenses', {
         amount: expenseAmount,
         description: expenseDesc
       });

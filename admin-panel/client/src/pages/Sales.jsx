@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import Layout from '../components/Layout';
 import { 
   DollarSign, 
@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { SkeletonTable } from '../components/Skeleton';
 import { useData } from '../context/DataContext';
-import { getApiUrl } from '../utils/api';
+
 import ConfirmModal from '../components/ConfirmModal';
 import { triggerBrowserPrint } from '../utils/browserPrint';
 
@@ -117,9 +117,9 @@ const Sales = () => {
     setLoading(true);
     try {
       const [salesRes, statusRes, storeRes] = await Promise.all([
-        axios.get(getApiUrl('/api/sales')),
-        axios.get(getApiUrl('/api/print/status')),
-        axios.get(getApiUrl('/api/print/store-config'))
+        api.get('/api/sales'),
+        api.get('/api/print/status'),
+        api.get('/api/print/store-config')
       ]);
       setSales(salesRes.data);
       if (statusRes.data && statusRes.data.type) {
@@ -142,12 +142,7 @@ const Sales = () => {
 
   const confirmDelete = async () => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(getApiUrl(`/api/sales/${deleteId}`), {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      await api.delete(`/api/sales/${deleteId}`);
       setShowDeleteConfirm(false);
       setDeleteId(null);
       fetchData();
@@ -179,7 +174,7 @@ const Sales = () => {
           orderId: printSale._id
         }, storeConfig);
       } else {
-        const printRes = await axios.post(getApiUrl('/api/print'), {
+        const printRes = await api.post('/api/print', {
           type: 'CUSTOMER_RECEIPT',
           items: printSale.items,
           orderType: printSale.orderType,
@@ -422,7 +417,7 @@ const Sales = () => {
     setLoadingReport(true);
     setReportData(null);
     try {
-      const res = await axios.get(getApiUrl(`/api/sales/shift-report?date=${reportDate}`));
+      const res = await api.get(`/api/sales/shift-report?date=${reportDate}`);
       setReportData(res.data);
     } catch (err) {
       console.error('Error fetching shift report:', err);

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { Terminal, RefreshCw, Trash2, Search, CheckCircle, Copy } from 'lucide-react';
 import { Spinner } from '../ui/spinner-1';
 import ConfirmModal from '../ConfirmModal';
-import { getApiUrl } from '../../utils/api';
+
 
 const LogsConsole = ({ setGlobalNotification }) => {
   const [logs, setLogs] = useState([]);
@@ -30,7 +30,7 @@ const LogsConsole = ({ setGlobalNotification }) => {
   const fetchLogs = async (page = 1) => {
     setLogsLoading(true);
     try {
-      const res = await axios.get(getApiUrl('/api/logs'), {
+      const res = await api.get('/api/logs', {
         params: {
           page,
           limit: 10,
@@ -54,7 +54,7 @@ const LogsConsole = ({ setGlobalNotification }) => {
     setLogsLoading(true);
     setShowClearConfirm(false);
     try {
-      await axios.delete(getApiUrl('/api/logs'));
+      await api.delete('/api/logs');
       setGlobalNotification({ type: 'success', message: 'All system logs cleared successfully.' });
       setLogs([]);
       setLogsPage(1);

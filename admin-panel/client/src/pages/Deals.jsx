@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import Layout from '../components/Layout';
 import ConfirmModal from '../components/ConfirmModal';
 import { Spinner } from '../components/ui/spinner-1';
@@ -15,7 +15,7 @@ import {
 import DealCreator from '../components/deals/DealCreator';
 import DealViewerModal from '../components/deals/DealViewerModal';
 import { useData } from '../context/DataContext';
-import { getApiUrl } from '../utils/api';
+
 
 
 const Deals = () => {
@@ -63,7 +63,7 @@ const Deals = () => {
     const id = confirmModal.dealId;
     if (!id) return;
     try {
-      await axios.delete(getApiUrl(`/api/deals/${id}`));
+      await api.delete(`/api/deals/${id}`);
       refreshData();
       setConfirmModal({ isOpen: false, dealId: null });
     } catch (err) {

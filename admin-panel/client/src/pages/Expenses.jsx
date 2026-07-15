@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import Layout from '../components/Layout';
 import { Spinner } from '../components/ui/spinner-1';
 import ConfirmModal from '../components/ConfirmModal';
-import { getApiUrl } from '../utils/api';
+
 
 import { 
   Plus, 
@@ -172,7 +172,7 @@ const Expenses = () => {
 
   const fetchExpenses = async () => {
     try {
-      const res = await axios.get(getApiUrl('/api/expenses'));
+      const res = await api.get('/api/expenses');
       setExpenses(res.data);
       setLoading(false);
     } catch (err) {
@@ -184,9 +184,9 @@ const Expenses = () => {
   const handleSave = async (data) => {
     try {
       if (editingExpense) {
-        await axios.put(getApiUrl(`/api/expenses/${editingExpense._id}`), data);
+        await api.put(`/api/expenses/${editingExpense._id}`, data);
       } else {
-        await axios.post(getApiUrl('/api/expenses'), data);
+        await api.post('/api/expenses', data);
       }
       setShowModal(false);
       setEditingExpense(null);
@@ -204,12 +204,7 @@ const Expenses = () => {
 
   const confirmDelete = async () => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(getApiUrl(`/api/expenses/${deleteId}`), {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      await api.delete(`/api/expenses/${deleteId}`);
       setShowDeleteConfirm(false);
       fetchExpenses();
     } catch (err) {

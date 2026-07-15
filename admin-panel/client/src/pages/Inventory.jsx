@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import Layout from '../components/Layout';
 import { useData } from '../context/DataContext';
 import { Plus, Edit2, Trash2, AlertCircle, ShoppingCart, PlusCircle, CheckCircle, Package, DollarSign } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
-import { getApiUrl } from '../utils/api';
+
 
 const Inventory = () => {
   const { ingredients, setIngredients, refreshData } = useData();
@@ -66,9 +66,9 @@ const Inventory = () => {
 
     try {
       if (isEditing) {
-        await axios.put(getApiUrl(`/api/ingredients/${isEditing._id}`), payload);
+        await api.put(`/api/ingredients/${isEditing._id}`, payload);
       } else {
-        await axios.post(getApiUrl('/api/ingredients'), payload);
+        await api.post('/api/ingredients', payload);
       }
       refreshData();
       setShowModal(false);
@@ -82,7 +82,7 @@ const Inventory = () => {
     if (!selectedIngredient || !adjustQty) return;
 
     try {
-      await axios.post(getApiUrl('/api/ingredients/adjust-stock'), {
+      await api.post('/api/ingredients/adjust-stock', {
         ingredientId: selectedIngredient._id,
         quantity: Number(adjustQty),
         type: adjustType
@@ -102,7 +102,7 @@ const Inventory = () => {
   const handleDelete = async () => {
     if (!deleteId) return;
     try {
-      await axios.delete(getApiUrl(`/api/ingredients/${deleteId}`));
+      await api.delete(`/api/ingredients/${deleteId}`);
       refreshData();
       setShowDeleteConfirm(false);
       setDeleteId(null);

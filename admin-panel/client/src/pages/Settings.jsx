@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import Layout from '../components/Layout';
-import { getApiUrl } from '../utils/api';
+
 import printLogoImg from '../assets/printlogo.jpeg';
 import { Spinner } from '../components/ui/spinner-1';
 import ConfirmModal from '../components/ConfirmModal';
@@ -70,7 +70,7 @@ const Settings = () => {
 
   const triggerPreview = async (type) => {
     try {
-      const res = await axios.get(getApiUrl('/api/print/preview'), {
+      const res = await api.get('/api/print/preview', {
         params: {
           type,
           storeName: storeConfig.storeName,
@@ -96,7 +96,7 @@ const Settings = () => {
   const fetchStatus = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(getApiUrl('/api/print/status'));
+      const res = await api.get('/api/print/status');
       setStatus(res.data);
       if (res.data.type === 'tcp') {
         const [host, port] = (res.data.printer || '').split(':');
@@ -141,7 +141,7 @@ const Settings = () => {
 
   const fetchStoreConfig = async () => {
     try {
-      const res = await axios.get(getApiUrl('/api/print/store-config'));
+      const res = await api.get('/api/print/store-config');
       setStoreConfig(res.data);
       if (res.data.logoUrl) {
         setLogoPreview(res.data.logoUrl);
@@ -155,7 +155,7 @@ const Settings = () => {
 
   const fetchDbStats = async () => {
     try {
-      const res = await axios.get(getApiUrl('/api/dashboard/db-stats'));
+      const res = await api.get('/api/dashboard/db-stats');
       setDbStats({
         totalSales: res.data.totalSales,
         totalExpenses: res.data.totalExpenses
@@ -183,7 +183,7 @@ const Settings = () => {
         port: config.port,
         width: config.width
       };
-      await axios.post(getApiUrl('/api/print/config'), payload);
+      await api.post('/api/print/config', payload);
       setNotification({ type: 'success', message: 'Printer configuration saved successfully!' });
       await fetchStatus();
     } catch (err) {
@@ -203,14 +203,14 @@ const Settings = () => {
       if (logoFile) {
         const formData = new FormData();
         formData.append('logo', logoFile);
-        await axios.post(getApiUrl('/api/print/logo'), formData, {
+        await api.post('/api/print/logo', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         setLogoFile(null);
         if (logoInputRef.current) logoInputRef.current.value = '';
       }
 
-      await axios.post(getApiUrl('/api/print/store-config'), {
+      await api.post('/api/print/store-config', {
         storeName: storeConfig.storeName,
         phone: storeConfig.phone,
         footerNote: storeConfig.footerNote
@@ -241,7 +241,7 @@ const Settings = () => {
     try {
       const formData = new FormData();
       formData.append('logo', logoFile);
-      const res = await axios.post(getApiUrl('/api/print/logo'), formData, {
+      const res = await api.post('/api/print/logo', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setStoreConfig(prev => ({ ...prev, logoUrl: res.data.logoUrl }));
@@ -261,7 +261,7 @@ const Settings = () => {
     setLogoUploading(true);
     setNotification(null);
     try {
-      await axios.delete(getApiUrl('/api/print/logo'));
+      await api.delete('/api/print/logo');
       setLogoFile(null);
       if (logoInputRef.current) logoInputRef.current.value = '';
       setNotification({ type: 'success', message: 'Custom logo removed successfully!' });
@@ -282,18 +282,16 @@ const Settings = () => {
     try {
       const userObj = JSON.parse(localStorage.getItem('user') || '{}');
       const email = userObj.email || 'admin@gmail.com';
-      const verifyRes = await axios.post(getApiUrl('/api/auth/verify-password'), {
+      const verifyRes = await api.post('/api/auth/verify-password', {
         email,
         password
       });
       if (verifyRes.data.success) {
-        const token = localStorage.getItem('token');
-        const headers = { Authorization: `Bearer ${token}` };
         if (resetType === 'sales' || resetType === 'both') {
-          await axios.delete(getApiUrl('/api/sales'), { headers });
+          await api.delete('/api/sales');
         }
         if (resetType === 'expenses' || resetType === 'both') {
-          await axios.delete(getApiUrl('/api/expenses'), { headers });
+          await api.delete('/api/expenses');
         }
         setNotification({
           type: 'success',

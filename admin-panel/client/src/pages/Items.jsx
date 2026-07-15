@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import Layout from '../components/Layout';
 import ItemCreatorModal from '../components/items/ItemCreatorModal';
 import ConfirmModal from '../components/ConfirmModal';
 import { Spinner } from '../components/ui/spinner-1';
 import { Plus, Edit2, Trash2, X, Upload, Package, MoreVertical, PlusCircle, Search, Save, Power, Tag, Layers, Flame } from 'lucide-react';
 import { useData } from '../context/DataContext';
-import { getApiUrl } from '../utils/api';
+
 
 const Items = () => {
   const { items: globalItems, categories, isDataLoading, refreshData } = useData();
@@ -84,7 +84,7 @@ const Items = () => {
     if (!id) return;
     
     try {
-      await axios.delete(getApiUrl(`/api/items/${confirmModal.itemId}`));
+      await api.delete(`/api/items/${confirmModal.itemId}`);
       refreshData();
       setConfirmModal({ isOpen: false, itemId: null });
     } catch (err) {
@@ -94,7 +94,7 @@ const Items = () => {
 
   const handleToggleAvailability = async (id) => {
     try {
-      await axios.put(getApiUrl(`/api/items/${id}/toggle-availability`));
+      await api.put(`/api/items/${id}/toggle-availability`);
       refreshData();
     } catch (err) {
       alert('Failed to toggle status');
@@ -128,7 +128,7 @@ const Items = () => {
         price: item.price,
         variants: item.variants
       }));
-      await axios.put(getApiUrl('/api/items/bulk/update-prices'), { updates });
+      await api.put('/api/items/bulk/update-prices', { updates });
       refreshData();
       setShowBulkModal(false);
       alert('Prices updated successfully!');

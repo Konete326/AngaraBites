@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { PlusCircle, X, Upload, Package, Save, Tag, Layers, Flame } from 'lucide-react';
 import { Spinner } from '../ui/spinner-1';
 import imageCompression from 'browser-image-compression';
 import { useData } from '../../context/DataContext';
-import { getApiUrl } from '../../utils/api';
+
 
 
 const ItemCreatorModal = ({ isOpen, onClose, itemToEdit, categories, refreshData }) => {
@@ -181,9 +181,9 @@ const ItemCreatorModal = ({ isOpen, onClose, itemToEdit, categories, refreshData
 
     try {
       if (itemToEdit) {
-        await axios.put(getApiUrl(`/api/items/${itemToEdit._id}`), data);
+        await api.put(`/api/items/${itemToEdit._id}`, data);
       } else {
-        await axios.post(getApiUrl('/api/items'), data, {
+        await api.post('/api/items', data, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
       }

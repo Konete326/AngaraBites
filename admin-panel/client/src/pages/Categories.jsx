@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import Layout from '../components/Layout';
 import { Spinner } from '../components/ui/spinner-1';
 import ConfirmModal from '../components/ConfirmModal';
 import { Plus, Edit2, Trash2, X, Check } from 'lucide-react';
 import { useData } from '../context/DataContext';
-import { getApiUrl } from '../utils/api';
 
 
 const CategoryFormModal = ({ onClose, onAdd, existingCategories = [] }) => {
@@ -90,13 +89,12 @@ const Categories = () => {
         // Merge existing subcategories with new ones, avoiding duplicates
         const mergedSubCategories = Array.from(new Set([...(existing.subCategories || []), ...subCategories]));
 
-        await axios.put(getApiUrl(`/api/categories/${existing._id}`), {
+        await api.put(`/api/categories/${existing._id}`, {
           name: existing.name,
           subCategories: mergedSubCategories
         });
       } else {
-        // Create new category
-        await axios.post(getApiUrl('/api/categories'), { name, subCategories });
+        await api.post('/api/categories', { name, subCategories });
       }
 
       setShowModal(false);
@@ -115,7 +113,7 @@ const Categories = () => {
   const handleDelete = async () => {
     if (!deleteId) return;
     try {
-      await axios.delete(getApiUrl(`/api/categories/${deleteId}`));
+      await api.delete(`/api/categories/${deleteId}`);
       refreshData();
       setDeleteId(null);
     } catch (err) {
@@ -132,7 +130,7 @@ const Categories = () => {
         subCategoryMappings[oldSub] = newSub || null;
       });
 
-      await axios.put(getApiUrl(`/api/categories/${categoryId}`), {
+      await api.put(`/api/categories/${categoryId}`, {
         name,
         subCategories,
         subCategoryMappings
@@ -185,7 +183,7 @@ const Categories = () => {
         }
       }
 
-      await axios.put(getApiUrl(`/api/categories/${id}`), {
+      await api.put(`/api/categories/${id}`, {
         name: editName,
         subCategories
       });

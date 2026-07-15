@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
-import { getApiUrl } from '../utils/api';
+import api from '../utils/api';
 
 
 const DataContext = createContext();
@@ -20,10 +19,10 @@ export const DataProvider = ({ children }) => {
     setIsDataLoading(true);
     try {
       const [itemsRes, catsRes, dealsRes, ingRes] = await Promise.all([
-        axios.get(getApiUrl('/api/items')),
-        axios.get(getApiUrl('/api/categories')),
-        axios.get(getApiUrl('/api/deals')),
-        axios.get(getApiUrl('/api/ingredients'))
+        api.get('/api/items'),
+        api.get('/api/categories'),
+        api.get('/api/deals'),
+        api.get('/api/ingredients')
       ]);
       
       setItems(itemsRes.data);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import Layout from '../components/Layout';
 import { Spinner } from '../components/ui/spinner-1';
 import { Search, Plus, Minus, Trash2, Printer, ShoppingCart, Package, Tag, X, Clock, LogOut, Archive } from 'lucide-react';
@@ -8,7 +8,7 @@ import VariantSelectionModal from '../components/pos/VariantSelectionModal';
 
 import DealVariantSelectionModal from '../components/pos/DealVariantSelectionModal';
 import { useData } from '../context/DataContext';
-import { getApiUrl } from '../utils/api';
+
 import { triggerBrowserPrint } from '../utils/browserPrint';
 
 const generateMongoObjectId = () => {
@@ -95,11 +95,11 @@ const POS = () => {
   useEffect(() => {
     const fetchPrinterAndStore = async () => {
       try {
-        const statusRes = await axios.get(getApiUrl('/api/print/status'));
+        const statusRes = await api.get('/api/print/status');
         if (statusRes.data && statusRes.data.type) {
           setPrinterType(statusRes.data.type);
         }
-        const storeRes = await axios.get(getApiUrl('/api/print/store-config'));
+        const storeRes = await api.get('/api/print/store-config');
         if (storeRes.data) {
           setStoreConfig(storeRes.data);
         }
@@ -346,7 +346,7 @@ const POS = () => {
       let fastFoodSimulated = false;
 
       if (bbqItems.length > 0) {
-        const res = await axios.post(getApiUrl('/api/print'), {
+        const res = await api.post('/api/print', {
           type: 'KOT_DESI',
           items: bbqItems,
           orderType,
@@ -359,7 +359,7 @@ const POS = () => {
       }
       
       if (fastFoodItems.length > 0) {
-        const res = await axios.post(getApiUrl('/api/print'), {
+        const res = await api.post('/api/print', {
           type: 'KOT_FASTFOOD',
           items: fastFoodItems,
           orderType,
@@ -489,7 +489,7 @@ const POS = () => {
         quantity: item.quantity
       }));
 
-      const res = await axios.post(getApiUrl('/api/sales'), {
+      const res = await api.post('/api/sales', {
         _id: currentOrderId,
         items: saleItems,
         totalAmount: total,
@@ -529,7 +529,7 @@ const POS = () => {
               orderId: finalOrderId
             }, storeConfig);
           } else {
-            const printRes = await axios.post(getApiUrl('/api/print'), {
+            const printRes = await api.post('/api/print', {
               type: 'CUSTOMER_RECEIPT',
               items: finalCart,
               orderType: finalOrderType,
