@@ -204,13 +204,17 @@ const Expenses = () => {
 
   const confirmDelete = async () => {
     try {
-      await axios.delete(getApiUrl(`/api/expenses/${deleteId}`));
+      const token = localStorage.getItem('token');
+      await axios.delete(getApiUrl(`/api/expenses/${deleteId}`), {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
       setShowDeleteConfirm(false);
       fetchExpenses();
     } catch (err) {
       console.error(err);
       alert('Error deleting expense');
-
     }
   };
 

@@ -287,11 +287,13 @@ const Settings = () => {
         password
       });
       if (verifyRes.data.success) {
+        const token = localStorage.getItem('token');
+        const headers = { Authorization: `Bearer ${token}` };
         if (resetType === 'sales' || resetType === 'both') {
-          await axios.delete(getApiUrl('/api/sales'));
+          await axios.delete(getApiUrl('/api/sales'), { headers });
         }
         if (resetType === 'expenses' || resetType === 'both') {
-          await axios.delete(getApiUrl('/api/expenses'));
+          await axios.delete(getApiUrl('/api/expenses'), { headers });
         }
         setNotification({
           type: 'success',

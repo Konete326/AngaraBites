@@ -142,7 +142,12 @@ const Sales = () => {
 
   const confirmDelete = async () => {
     try {
-      await axios.delete(getApiUrl(`/api/sales/${deleteId}`));
+      const token = localStorage.getItem('token');
+      await axios.delete(getApiUrl(`/api/sales/${deleteId}`), {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
       setShowDeleteConfirm(false);
       setDeleteId(null);
       fetchData();
