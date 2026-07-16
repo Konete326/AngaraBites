@@ -4,8 +4,11 @@ const getBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL.replace(/\/+$/, '');
   }
-  const host = (window.location.hostname === 'localhost' || !window.location.hostname) ? '127.0.0.1' : window.location.hostname;
-  return `http://${host}:5000`;
+  const host = window.location.hostname;
+  if (host && (host.includes('vercel.app') || host.includes('angarabites'))) {
+    return 'https://angara-bites-backend.vercel.app';
+  }
+  return `http://${host || '127.0.0.1'}:5000`;
 };
 
 export const getApiUrl = (path) => {
