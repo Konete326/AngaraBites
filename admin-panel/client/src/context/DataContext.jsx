@@ -18,17 +18,17 @@ export const DataProvider = ({ children }) => {
   const fetchAllData = async () => {
     setIsDataLoading(true);
     try {
-      const [itemsRes, catsRes, dealsRes, ingRes] = await Promise.all([
+      const [itemsRes, catsRes, dealsRes, ingRes] = await Promise.allSettled([
         api.get('/api/items'),
         api.get('/api/categories'),
         api.get('/api/deals'),
         api.get('/api/ingredients')
       ]);
-      
-      setItems(itemsRes.data);
-      setCategories(catsRes.data);
-      setDeals(dealsRes.data);
-      setIngredients(ingRes.data);
+
+      if (itemsRes.status === 'fulfilled' && Array.isArray(itemsRes.value?.data)) setItems(itemsRes.value.data);
+      if (catsRes.status === 'fulfilled' && Array.isArray(catsRes.value?.data)) setCategories(catsRes.value.data);
+      if (dealsRes.status === 'fulfilled' && Array.isArray(dealsRes.value?.data)) setDeals(dealsRes.value.data);
+      if (ingRes.status === 'fulfilled' && Array.isArray(ingRes.value?.data)) setIngredients(ingRes.value.data);
       setDataError(null);
     } catch (err) {
       console.error(err);

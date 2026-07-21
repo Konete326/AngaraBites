@@ -3,47 +3,36 @@ const router = express.Router();
 const Sale = require('../models/Sale');
 const Expense = require('../models/Expense');
 
-// ── Business Day Configuration ─────────────────────────────────────────────
-// OLD system (before July 2, 2026 5 PM PKT): day = calendar midnight → midnight
-// NEW system (from July 2, 2026 5 PM PKT):  day = 5 PM PKT → next day 4:59 PM PKT
-//   5 PM PKT = 12:00 noon UTC  (PKT = UTC+5)
-//
-// CUTOFF = July 2, 2026 at 12:00 UTC (= July 2 5 PM PKT)
 const CUTOFF_UTC = new Date('2026-07-02T12:00:00.000Z');
-const BUSINESS_START_UTC_HOUR = 12; // 12:00 UTC = 17:00 PKT
+const BUSINESS_START_UTC_HOUR = 12;
 
-// Get "Today's Business" Summary
 router.get('/today', async (req, res) => {
     try {
         const now = new Date();
         let startOfBusinessDay;
 
         if (now < CUTOFF_UTC) {
-            // Before July 2nd 5:00 PM PKT (12:00 UTC), the current active business day is July 1st.
-            // Since July 1st uses the old logic (midnight-to-midnight), we start querying from July 1st 00:00 PKT (June 30th 19:00 UTC).
             startOfBusinessDay = new Date('2026-06-30T19:00:00.000Z');
         } else {
-            // ── NEW logic: 5 PM PKT = 12:00 UTC ──────────────────────────────
             startOfBusinessDay = new Date();
             startOfBusinessDay.setUTCHours(BUSINESS_START_UTC_HOUR, 0, 0, 0);
-            // If current UTC hour is before noon, business day started yesterday at noon UTC
             if (now.getUTCHours() < BUSINESS_START_UTC_HOUR) {
                 startOfBusinessDay.setUTCDate(startOfBusinessDay.getUTCDate() - 1);
             }
         }
 
-        const todaySales = await Sale.find({ createdAt: { $gte: startOfBusinessDay } }).lean();
-        const totalSales = todaySales.reduce((sum, sale) => sum + (Number(sale.totalAmount) || 0), 0);
+        const [todaySales, todayExpenses] = await Promise.all([
+            Sale.find({ createdAt: { $gte: startOfBusinessDay } }).lean().catch(() => []),
+            Expense.find({ createdAt: { $gte: startOfBusinessDay } }).lean().catch(() => [])
+        ]);
 
-        const todayExpenses = await Expense.find({ createdAt: { $gte: startOfBusinessDay } }).lean();
-        const totalExpenses = todayExpenses.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
-
-        const netCash = totalSales - totalExpenses;
+        const totalSales = (todaySales || []).reduce((sum, sale) => sum + (Number(sale?.totalAmount) || 0), 0);
+        const totalExpenses = (todayExpenses || []).reduce((sum, exp) => sum + (Number(exp?.amount) || 0), 0);
 
         res.json({
             totalSales,
             totalExpenses,
-            netCash
+            netCash: totalSales - totalExpenses
         });
     } catch (err) {
         console.error('Error fetching dashboard summary:', err);
@@ -54,8 +43,8 @@ router.get('/today', async (req, res) => {
 router.get('/db-stats', async (req, res) => {
     try {
         const [totalSales, totalExpenses] = await Promise.all([
-            Sale.countDocuments(),
-            Expense.countDocuments()
+            Sale.countDocuments().catch(() => 0),
+            Expense.countDocuments().catch(() => 0)
         ]);
         res.json({ totalSales, totalExpenses });
     } catch (err) {
@@ -70,50 +59,44 @@ router.get('/analytics', async (req, res) => {
         sevenDaysAgo.setHours(0, 0, 0, 0);
 
         const [sales, expenses] = await Promise.all([
-            Sale.find({ createdAt: { $gte: sevenDaysAgo } }).lean(),
-            Expense.find({ createdAt: { $gte: sevenDaysAgo } }).lean()
+            Sale.find({ createdAt: { $gte: sevenDaysAgo } }).lean().catch(() => []),
+            Expense.find({ createdAt: { $gte: sevenDaysAgo } }).lean().catch(() => [])
         ]);
 
         const daysData = [];
         for (let i = 6; i >= 0; i--) {
             const d = new Date();
             d.setDate(d.getDate() - i);
-            const dateStr = d.toLocaleDateString('en-US', { weekday: 'short' });
-            const dateKey = d.toDateString();
             daysData.push({
-                dateLabel: dateStr,
-                dateKey: dateKey,
+                dateLabel: d.toLocaleDateString('en-US', { weekday: 'short' }),
+                dateKey: d.toDateString(),
                 sales: 0,
                 expenses: 0
             });
         }
 
-        sales.forEach(sale => {
+        (sales || []).forEach(sale => {
+            if (!sale || !sale.createdAt) return;
             const saleDateKey = new Date(sale.createdAt).toDateString();
             const dayObj = daysData.find(d => d.dateKey === saleDateKey);
-            if (dayObj) {
-                dayObj.sales += Number(sale.totalAmount) || 0;
-            }
+            if (dayObj) dayObj.sales += Number(sale.totalAmount) || 0;
         });
 
-        expenses.forEach(expense => {
-            const expDateKey = new Date(expense.createdAt).toDateString();
+        (expenses || []).forEach(exp => {
+            if (!exp || !exp.createdAt) return;
+            const expDateKey = new Date(exp.createdAt).toDateString();
             const dayObj = daysData.find(d => d.dateKey === expDateKey);
-            if (dayObj) {
-                dayObj.expenses += Number(expense.amount) || 0;
-            }
+            if (dayObj) dayObj.expenses += Number(exp.amount) || 0;
         });
 
         const itemCounts = {};
-        sales.forEach(sale => {
-            if (Array.isArray(sale.items)) {
-                sale.items.forEach(saleItem => {
-                    const itemName = saleItem.name || 'Unknown Item';
-                    const qty = Number(saleItem.quantity) || 0;
-                    if (!itemCounts[itemName]) {
-                        itemCounts[itemName] = 0;
-                    }
-                    itemCounts[itemName] += qty;
+        (sales || []).forEach(sale => {
+            if (sale && Array.isArray(sale.items)) {
+                sale.items.forEach(item => {
+                    if (!item) return;
+                    const name = item.name || 'Unknown Item';
+                    const qty = Number(item.quantity) || 0;
+                    itemCounts[name] = (itemCounts[name] || 0) + qty;
                 });
             }
         });

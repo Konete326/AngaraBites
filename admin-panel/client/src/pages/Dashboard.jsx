@@ -27,27 +27,32 @@ const Dashboard = () => {
   const [expenseAmount, setExpenseAmount] = useState('');
   const [expenseDesc, setExpenseDesc] = useState('');
 
+  const [expenseError, setExpenseError] = useState('');
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
 
   const fetchDashboardData = async () => {
     try {
-      const [summaryRes, salesRes, analyticsRes] = await Promise.all([
+      const [summaryRes, salesRes, analyticsRes] = await Promise.allSettled([
         api.get('/api/dashboard/today'),
         api.get('/api/sales?limit=5'),
         api.get('/api/dashboard/analytics')
       ]);
-      const summary = summaryRes.data || { totalSales: 0, totalExpenses: 0, netCash: 0 };
-      setBusinessSummary(summary);
-      const sales = Array.isArray(salesRes.data) ? salesRes.data : [];
-      setRecentSales(sales);
-      if (analyticsRes.data) {
-        setAnalyticsData(analyticsRes.data);
+
+      if (summaryRes.status === 'fulfilled' && summaryRes.value?.data) {
+        setBusinessSummary(summaryRes.value.data);
       }
-      setLoading(false);
+      if (salesRes.status === 'fulfilled' && Array.isArray(salesRes.value?.data)) {
+        setRecentSales(salesRes.value.data);
+      }
+      if (analyticsRes.status === 'fulfilled' && analyticsRes.value?.data) {
+        setAnalyticsData(analyticsRes.value.data);
+      }
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
+    } finally {
       setLoading(false);
     }
   };
@@ -62,26 +67,23 @@ const Dashboard = () => {
 
   const handleAddExpense = async () => {
     if (!expenseAmount || !expenseDesc) {
-      alert("Please enter both amount and description.");
+      setExpenseError('Please enter both amount and description.');
       return;
     }
 
     try {
+      setExpenseError('');
       await api.post('/api/expenses', {
         amount: expenseAmount,
         description: expenseDesc
       });
 
-      // Refresh Data
       fetchDashboardData();
-
-      // Close and clear
       setShowExpenseModal(false);
       setExpenseAmount('');
       setExpenseDesc('');
-
     } catch (err) {
-      alert("Failed to add expense: " + err.message);
+      setExpenseError('Failed to add expense: ' + (err.response?.data?.message || err.message));
     }
   };
 
@@ -494,6 +496,12 @@ const Dashboard = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                   <h2 style={{ color: 'var(--text-main)', fontSize: '1.3rem', margin: 0 }}>Add Daily Expense</h2>
                 </div>
+
+                {expenseError && (
+                  <div style={{ padding: '0.75rem', marginBottom: '1rem', borderRadius: '8px', backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', fontSize: '0.85rem' }}>
+                    {expenseError}
+                  </div>
+                )}
 
                 <div style={{ marginBottom: '1.2rem' }}>
                   <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Amount (Rs.)</label>
