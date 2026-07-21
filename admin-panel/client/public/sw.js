@@ -1,9 +1,13 @@
-const CACHE_NAME = 'angara-bites-v2';
+const CACHE_NAME = 'angara-bites-v3';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/favicon.svg',
-  '/logo.png'
+  '/logo.png',
+  '/pwa-192x192.png',
+  '/pwa-512x512.png',
+  '/apple-touch-icon.png',
+  '/manifest.json'
 ];
 
 self.addEventListener('install', event => {
